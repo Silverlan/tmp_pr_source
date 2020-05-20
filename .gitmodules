@@ -1,0 +1,9 @@
+[submodule "third_party/libbsa"]
+	path = third_party/libbsa
+	url = https://github.com/Silverlan/libbsa.git
+[submodule "third_party/ba2lib"]
+	path = third_party/ba2lib
+	url = https://github.com/Silverlan/BA2Lib.git
+[submodule "external_libs/util_archive"]
+	path = external_libs/util_archive
+	url = https://github.com/Silverlan/util_archive.git
