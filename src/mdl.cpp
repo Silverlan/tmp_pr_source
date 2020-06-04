@@ -1962,6 +1962,7 @@ std::shared_ptr<Model> import::load_mdl(
 					auto &stdFlexDesc = mdlInfo.flexDescs.at(stdFlex.flexdesc);
 					auto vertAnim = mdl.AddVertexAnimation("flex_" +stdFlexDesc.GetName());
 					auto meshFrame = vertAnim->AddMeshFrame(info.mesh,info.subMesh);
+					meshFrame->SetFlagEnabled(MeshVertexFrame::Flags::HasNormals);
 					if(stdFlex.flexdesc < flexes.size())
 					{
 						auto &flex = flexes.at(stdFlex.flexdesc);
@@ -2014,6 +2015,11 @@ std::shared_ptr<Model> import::load_mdl(
 							auto &vvdVert = vvdVerts.at(fixedVertIdx);
 							auto side = t->side /255.f;
 							auto scale = 1.f -side;
+							float vertAnimFixedPointScale;
+							if(header.flags &STUDIOHDR_FLAGS_VERT_ANIM_FIXED_POINT_SCALE)
+								vertAnimFixedPointScale = header.flVertAnimFixedPointScale;
+							else
+								vertAnimFixedPointScale = 1.f /4'096.f;
 
 							Vector3 v{float16::Convert16bitFloatTo32bits(t->flDelta.at(1)),float16::Convert16bitFloatTo32bits(t->flDelta.at(2)),float16::Convert16bitFloatTo32bits(t->flDelta.at(0))};
 							v = {v.z,v.y,-v.x}; // Determined by testing
@@ -2024,21 +2030,32 @@ std::shared_ptr<Model> import::load_mdl(
 							}
 							meshFrame->SetVertexPosition(vertIdx,v);
 
+							Vector3 n {float16::Convert16bitFloatTo32bits(t->flNDelta.at(1)),float16::Convert16bitFloatTo32bits(t->flNDelta.at(2)),float16::Convert16bitFloatTo32bits(t->flNDelta.at(0))};
+							n = {n.z,n.y,-n.x}; // TODO: I have no idea if this is correct
+							if(pairMeshFrame != nullptr)
+							{
+								auto npair = n *(1.f -scale); // TODO: I'm even less sure that this is correct
+								pairMeshFrame->SetVertexNormal(vertIdx,npair);
+								n *= scale; // TODO: Same here
+							}
+							meshFrame->SetVertexNormal(vertIdx,n);
+
 							if(stdFlex.vertanimtype == import::mdl::StudioVertAnimType_t::STUDIO_VERT_ANIM_WRINKLE)
 							{
 								auto &wrinkle = static_cast<import::mdl::mstudiovertanim_wrinkle_t&>(*t);
-								const float g_VertAnimFixedPointScale = 1.0f / 4096.0f;
-								const float g_VertAnimFixedPointScaleInv = 1.0f / g_VertAnimFixedPointScale;
-								auto wrinkleDelta = wrinkle.wrinkledelta /g_VertAnimFixedPointScaleInv;
-
-							//	'		int nWrinkleDeltaInt = flWrinkle * g_VertAnimFixedPointScaleInv;
-							//		'		wrinkledelta = clamp( nWrinkleDeltaInt, -32767, 32767 );
+								auto wrinkleDelta = wrinkle.wrinkledelta *vertAnimFixedPointScale;
 
 								//auto wrinkleDelta = float16::Convert16bitFloatTo32bits(wrinkle.wrinkledelta);
 								if(wrinkleDelta != 0.f)
 									meshFrame->SetFlagEnabled(MeshVertexFrame::Flags::HasDeltaValues);
 								meshFrame->SetDeltaValue(vertIdx,wrinkleDelta);
 							}
+							else if(stdFlex.vertanimtype == import::mdl::StudioVertAnimType_t::STUDIO_VERT_ANIM_NORMAL)
+							{
+
+							}
+							// TODO: The delta values (pos/norm) should have to be multiplied by vertAnimFixedPointScale, but
+							// for some reason they don't?
 						}
 						else
 						{
