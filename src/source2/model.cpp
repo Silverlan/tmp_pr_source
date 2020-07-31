@@ -206,6 +206,9 @@ static void initialize_scene_objects(
 	auto sceneObjects = data.FindArrayValues<source2::resource::IKeyValueCollection*>("m_sceneObjects");
 	for(auto *sceneObject : sceneObjects)
 	{
+		auto name = sceneObject->FindValue<std::string>("m_name");
+		if(name.has_value())
+			std::cout<<"Loading mesh '"<<*name<<"'..."<<std::endl;
 		auto prMesh = std::shared_ptr<ModelMesh>{nw.CreateMesh()};
 		auto prMeshIdx = meshGroup.GetMeshes().size();
 		meshGroup.AddMesh(prMesh);
@@ -483,6 +486,255 @@ static std::unordered_map<std::string,Flex::Operation::Type> g_flexOpTable {
 	{"FLEX_OP_DOMINATE",Flex::Operation::Type::Dominate}
 };
 
+enum class S2FlexOp : uint32_t
+{
+	Const = 1,
+	Fetch1 = 2,
+	Fetch2 = 3,
+	Add = 4,
+	Sub = 5,
+	Mul = 6,
+	Div = 7,
+	Neg = 8,
+	Exp = 9,
+	Open = 10,
+	Close = 11,
+	Comma = 12,
+	Max = 13,
+	Min = 14,
+	e2Way0 = 15,
+	e2Way1 = 16,
+	NWay = 17,
+	Combo = 18,
+	Dominate = 19,
+	DMELowerEyelid = 20,
+	DMEUpperEyelid = 21
+};
+
+// TODO: These are taken from Source 1, I have no idea if they actually match the values from Source 2
+std::unordered_map<S2FlexOp,Flex::Operation::Type> g_s2FlexToPragma = {
+	{S2FlexOp::Const,Flex::Operation::Type::Const},
+	{S2FlexOp::Fetch1,Flex::Operation::Type::Fetch},
+	{S2FlexOp::Fetch2,Flex::Operation::Type::Fetch2},
+	{S2FlexOp::Add,Flex::Operation::Type::Add},
+	{S2FlexOp::Sub,Flex::Operation::Type::Sub},
+	{S2FlexOp::Mul,Flex::Operation::Type::Mul},
+	{S2FlexOp::Div,Flex::Operation::Type::Div},
+	{S2FlexOp::Neg,Flex::Operation::Type::Neg},
+	{S2FlexOp::Exp,Flex::Operation::Type::Exp},
+	{S2FlexOp::Open,Flex::Operation::Type::Open},
+	{S2FlexOp::Close,Flex::Operation::Type::Close},
+	{S2FlexOp::Comma,Flex::Operation::Type::Comma},
+	{S2FlexOp::Max,Flex::Operation::Type::Max},
+	{S2FlexOp::Min,Flex::Operation::Type::Min},
+	{S2FlexOp::e2Way0,Flex::Operation::Type::TwoWay0},
+	{S2FlexOp::e2Way1,Flex::Operation::Type::TwoWay1},
+	{S2FlexOp::NWay,Flex::Operation::Type::NWay},
+	{S2FlexOp::Combo,Flex::Operation::Type::Combo},
+	{S2FlexOp::Dominate,Flex::Operation::Type::Dominate},
+	{S2FlexOp::DMELowerEyelid,Flex::Operation::Type::DMELowerEyelid},
+	{S2FlexOp::DMEUpperEyelid,Flex::Operation::Type::DMEUpperEyelid}
+};
+
+static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueCollection &morphData,Model &mdl,std::unordered_map<uint32_t,uint32_t> &s2FlexDescToPragma)
+{
+	auto textureAtlasPath = morphData.FindValue<std::string>("m_pTextureAtlas");
+	auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c") : nullptr;
+	auto *texAtlas = texAtlasResource ? dynamic_cast<source2::resource::Texture*>(texAtlasResource->FindBlock(source2::BlockType::DATA)) : nullptr;
+	if(texAtlas == nullptr)
+	{
+		if(textureAtlasPath.has_value())
+			Con::cwar<<"WARNING: Unable to load texture atlas '"<<*textureAtlasPath<<"'!"<<Con::endl;
+	}
+	else
+	{
+		assert(texAtlas->GetFormat() == source2::VTexFormat::RGBA8888);
+		if(texAtlas->GetFormat() != source2::VTexFormat::RGBA8888)
+			throw std::logic_error{"Unexpected format for FACS morph atlas: '" +std::to_string(umath::to_integral(texAtlas->GetFormat())) +"'!"};
+		auto atlasWidth = texAtlas->GetWidth();
+		auto atlasHeight = texAtlas->GetHeight();
+		//uint32_t maxX = 0;
+		//uint32_t maxY = 0;
+		std::vector<uint8_t> atlasData {};
+		texAtlas->ReadTextureData(0,atlasData);
+
+		auto wRectDst = morphData.FindValue<int64_t>("m_nWidth",0);
+		auto hRectDst = morphData.FindValue<int64_t>("m_nHeight",0);
+
+		morphDstWidth = wRectDst;
+		morphDstHeight = hRectDst;
+
+
+		imgBuf = uimg::ImageBuffer::Create(atlasData.data(),atlasWidth,atlasHeight,uimg::ImageBuffer::Format::RGBA8);
+#if 0
+		auto imgBuf = uimg::ImageBuffer::Create(width,height,uimg::ImageBuffer::Format::RGBA8);
+		imgBuf->Clear(Color::White.ToVector4());
+		std::vector<bool> dstImageData;
+		dstImageData.resize(width *height,false);
+		for(auto *morphData : morphData.FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphDatas"))
+		{
+			for(auto *morphRectData : morphData.FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphRectDatas"))
+			{
+				auto xLeftDst = morphRectData->FindValue<int64_t>("m_nXLeftDst",0);
+				auto yTopDst = morphRectData->FindValue<int64_t>("m_nYTopDst",0);
+				auto idx = yTopDst *width +xLeftDst;
+				dstImageData.at(idx) = true;
+			}
+		}
+#endif
+
+		auto fGetPixelData = [&atlasData,atlasWidth,atlasHeight](int32_t x,int32_t y) -> uint32_t {
+			auto pxOffset = y *atlasWidth +x;
+			return *(reinterpret_cast<uint32_t*>(atlasData.data()) +pxOffset);
+		};
+
+		auto lookupType = morphData.FindValue<std::string>("m_nLookupType");
+		auto bundleTypes = morphData.FindArrayValues<std::string>("m_bundleTypes");
+
+		struct PositionSpeed
+		{
+			Vector3 position;
+			float speed;
+		};
+		std::vector<std::optional<PositionSpeed>> positionSpeedData {};
+		std::unordered_map<std::string,std::vector<size_t>> morphVertexIndices {};
+
+		uint32_t morphIdx = 0;
+		//auto col0 = Color::Red;
+		//auto col1 = Color::Lime;
+		//std::vector<float> transformedData {};
+
+		for(auto *morphData : morphData.FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphDatas"))
+		{
+			ScopeGuard sg {[&morphIdx]() {++morphIdx;}};
+			//auto col = col0.Lerp(col1,morphIdx++ /235.f);
+
+			auto name = morphData->FindValue<std::string>("m_name","");
+			morphVertexIndices[name] = {};
+			auto &prBundleData = prMorphData[name];
+			std::vector<std::shared_ptr<uimg::ImageBuffer>> rects {};
+
+			auto dstImage = uimg::ImageBuffer::Create(morphDstWidth,morphDstHeight,uimg::ImageBuffer::Format::RGBA32);
+			dstImage->Clear(Vector4{0.f,0.f,0.f,0.f});
+			for(auto *morphRectData : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphRectDatas"))
+			{
+				auto xRectDst = morphRectData->FindValue<int64_t>("m_nXLeftDst",0);
+				auto yRectDst = morphRectData->FindValue<int64_t>("m_nYTopDst",0);
+
+#if 0
+				auto numAvailable = 1;
+				auto idxTest = yTopDst *width +xLeftDst;
+				++idxTest;
+				while(idxTest < dstImageData.size() && dstImageData.at(idxTest) == false)
+				{
+					++numAvailable;
+					++idxTest;
+				}
+#endif
+
+				//imgBuf->SetPixelColor(xLeftDst,yTopDst,col.ToVector4());
+				//maxX = umath::max(maxX,static_cast<uint32_t>(xLeftDst));
+				//maxY = umath::max(maxY,static_cast<uint32_t>(yTopDst));
+
+				auto uWidthSrc = morphRectData->FindValue<double>("m_flUWidthSrc",0.0);
+				auto uHeightSrc = morphRectData->FindValue<double>("m_flVHeightSrc",0.0);
+
+				auto wRectSrc = umath::round(uWidthSrc *atlasWidth);
+				auto hRectSrc = umath::round(uHeightSrc *atlasHeight);
+
+				std::vector<Vector3> offsetsPerVertex {};
+				std::vector<uint64_t> vertexIndices {};
+				uint32_t bundleIdx = 0;
+				for(auto *bundleData : morphRectData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_bundleDatas"))
+				{
+					//auto &bundleVertexData = prBundleData[bundleIdx];
+					auto &bundleType = bundleTypes.at(bundleIdx++);
+					auto uLeftSrc = bundleData->FindValue<double>("m_flULeftSrc",0.0);
+					auto vTopSrc = bundleData->FindValue<double>("m_flVTopSrc",0.0);
+					auto offsets = bundleData->FindArrayValues<double>("m_offsets");
+					auto ranges = bundleData->FindArrayValues<double>("m_ranges");
+					assert(offsets.size() == 4 && ranges.size() == 4);
+
+					auto xRectSrc = umath::round(uLeftSrc *atlasWidth);
+					auto yRectSrc = umath::round(vTopSrc *atlasHeight);
+
+					//auto atlasRect = uimg::ImageBuffer::Create(*imgBuf,yRectSrc,xRectSrc,hRectSrc,wRectSrc);
+
+					std::vector<std::array<uint8_t,4>> atlasRectData {};
+					atlasRectData.reserve(wRectSrc *hRectSrc);
+					for(uint32_t x=0;x<wRectSrc;++x)
+					{
+						for(uint32_t y=0;y<hRectSrc;++y)
+						{
+							auto pxView = imgBuf->GetPixelView(xRectSrc +x,yRectSrc +y);
+							atlasRectData.push_back({
+								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Red),
+								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Green),
+								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Blue),
+								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Alpha)
+								});
+						}
+					}
+
+					auto *rawData = reinterpret_cast<uint8_t*>(atlasRectData.data());//static_cast<uint8_t*>(atlasRect->GetData());
+					auto rawSize = atlasRectData.size() *sizeof(uint8_t) *4;//atlasRect->GetSize();
+
+					std::vector<Vector4> transformedData {};
+					transformedData.resize(rawSize /4);
+					for(auto i=decltype(rawSize){0u};i<rawSize;i+=4)
+					{
+						for(uint8_t j=0;j<4;++j)
+							transformedData.at(i /4)[j] = (rawData[i +j] /static_cast<float>(std::numeric_limits<uint8_t>::max())) *ranges.at(j) +offsets.at(j);
+					}
+
+					auto startVertexIndex = yRectDst *wRectDst +xRectDst;
+					if(bundleType == "MORPH_BUNDLE_TYPE_POSITION_SPEED")
+					{
+						uint32_t i = 0;
+						auto dst_y = yRectDst;
+						auto dst_x = xRectDst;
+						auto rect_width = wRectSrc;
+						auto rect_height = hRectSrc;
+						for(uint32_t x=dst_x;x<(dst_x +rect_width);++x)
+						{
+							for(uint32_t y=dst_y;y<(dst_y +rect_height);++y)
+							{
+								auto &v = transformedData[i];
+								//bundleVertexData[x *rect_height +(y -dst_y)] = v;
+								dstImage->SetPixelColor(x,y,v);
+								++i;
+							}
+						}
+					}
+				}
+			}
+
+			auto &bd = prBundleData[0];
+			auto *data = dstImage->GetData();
+			std::vector<Vector4> vData {};
+			vData.resize(morphDstWidth *morphDstHeight);
+			memcpy(vData.data(),data,vData.size() *sizeof(vData.front()));
+			for(uint32_t i=0;i<vData.size();++i)
+				bd[i] = vData[i];
+		}
+	}
+
+	uint32_t s2FlexIdx = 0;
+	for(auto *flexDesc : morphData.FindArrayValues<source2::resource::IKeyValueCollection*>("m_FlexDesc"))
+	{
+		auto szFacs = flexDesc->FindValue<std::string>("m_szFacs");
+		if(szFacs.has_value())
+		{
+			auto flexIdx = mdl.GetFlexCount();
+			auto &flex = mdl.AddFlex(*szFacs);
+			s2FlexDescToPragma[s2FlexIdx] = flexIdx;
+			auto vertAnim = mdl.AddVertexAnimation("flex_" +*szFacs);
+
+		}
+		++s2FlexIdx;
+	}
+}
+
 std::shared_ptr<Model> source2::convert::convert_model(
 	Game &game,source2::resource::Model &s2Mdl,source2::resource::Resource *optResource
 )
@@ -605,212 +857,14 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	std::vector<std::vector<MeshVertexInfo>> vbibVertexIndexToPragmaMeshId {};
 
 	std::unordered_map<uint32_t,uint32_t> s2FlexDescToPragma {};
+	std::vector<std::shared_ptr<source2::resource::IKeyValueCollection>> morphBlocks {};
+
+	auto *morph = optResource ? dynamic_cast<source2::resource::KeyValuesOrNTRO*>(optResource->FindBlock(source2::BlockType::MRPH)) : nullptr;
+	auto morphData = morph ? morph->GetData() : nullptr;
+	if(morphData)
 	{
-		auto *morph = optResource ? dynamic_cast<source2::resource::KeyValuesOrNTRO*>(optResource->FindBlock(source2::BlockType::MRPH)) : nullptr;
-		auto morphData = morph ? morph->GetData() : nullptr;
-		if(morphData)
-		{
-			auto textureAtlasPath = morphData->FindValue<std::string>("m_pTextureAtlas");
-			auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c") : nullptr;
-			auto *texAtlas = texAtlasResource ? dynamic_cast<source2::resource::Texture*>(texAtlasResource->FindBlock(source2::BlockType::DATA)) : nullptr;
-			if(texAtlas == nullptr)
-			{
-				if(textureAtlasPath.has_value())
-					Con::cwar<<"WARNING: Unable to load texture atlas '"<<*textureAtlasPath<<"'!"<<Con::endl;
-			}
-			else
-			{
-				assert(texAtlas->GetFormat() == source2::VTexFormat::RGBA8888);
-				if(texAtlas->GetFormat() != source2::VTexFormat::RGBA8888)
-					throw std::logic_error{"Unexpected format for FACS morph atlas: '" +std::to_string(umath::to_integral(texAtlas->GetFormat())) +"'!"};
-				auto atlasWidth = texAtlas->GetWidth();
-				auto atlasHeight = texAtlas->GetHeight();
-				//uint32_t maxX = 0;
-				//uint32_t maxY = 0;
-				std::vector<uint8_t> atlasData {};
-				texAtlas->ReadTextureData(0,atlasData);
-
-				auto wRectDst = morphData->FindValue<int64_t>("m_nWidth",0);
-				auto hRectDst = morphData->FindValue<int64_t>("m_nHeight",0);
-
-				morphDstWidth = wRectDst;
-				morphDstHeight = hRectDst;
-
-
-				imgBuf = uimg::ImageBuffer::Create(atlasData.data(),atlasWidth,atlasHeight,uimg::ImageBuffer::Format::RGBA8);
-#if 0
-				auto imgBuf = uimg::ImageBuffer::Create(width,height,uimg::ImageBuffer::Format::RGBA8);
-				imgBuf->Clear(Color::White.ToVector4());
-				std::vector<bool> dstImageData;
-				dstImageData.resize(width *height,false);
-				for(auto *morphData : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphDatas"))
-				{
-					for(auto *morphRectData : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphRectDatas"))
-					{
-						auto xLeftDst = morphRectData->FindValue<int64_t>("m_nXLeftDst",0);
-						auto yTopDst = morphRectData->FindValue<int64_t>("m_nYTopDst",0);
-						auto idx = yTopDst *width +xLeftDst;
-						dstImageData.at(idx) = true;
-					}
-				}
-#endif
-
-				auto fGetPixelData = [&atlasData,atlasWidth,atlasHeight](int32_t x,int32_t y) -> uint32_t {
-					auto pxOffset = y *atlasWidth +x;
-					return *(reinterpret_cast<uint32_t*>(atlasData.data()) +pxOffset);
-				};
-
-				auto lookupType = morphData->FindValue<std::string>("m_nLookupType");
-				auto bundleTypes = morphData->FindArrayValues<std::string>("m_bundleTypes");
-
-				struct PositionSpeed
-				{
-					Vector3 position;
-					float speed;
-				};
-				std::vector<std::optional<PositionSpeed>> positionSpeedData {};
-				std::unordered_map<std::string,std::vector<size_t>> morphVertexIndices {};
-
-				uint32_t morphIdx = 0;
-				//auto col0 = Color::Red;
-				//auto col1 = Color::Lime;
-				//std::vector<float> transformedData {};
-
-				for(auto *morphData : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphDatas"))
-				{
-					ScopeGuard sg {[&morphIdx]() {++morphIdx;}};
-					//auto col = col0.Lerp(col1,morphIdx++ /235.f);
-
-					auto name = morphData->FindValue<std::string>("m_name","");
-					morphVertexIndices[name] = {};
-					auto &prBundleData = prMorphData[name];
-					std::vector<std::shared_ptr<uimg::ImageBuffer>> rects {};
-
-					auto dstImage = uimg::ImageBuffer::Create(morphDstWidth,morphDstHeight,uimg::ImageBuffer::Format::RGBA32);
-					dstImage->Clear(Vector4{0.f,0.f,0.f,0.f});
-					for(auto *morphRectData : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphRectDatas"))
-					{
-						auto xRectDst = morphRectData->FindValue<int64_t>("m_nXLeftDst",0);
-						auto yRectDst = morphRectData->FindValue<int64_t>("m_nYTopDst",0);
-
-#if 0
-						auto numAvailable = 1;
-						auto idxTest = yTopDst *width +xLeftDst;
-						++idxTest;
-						while(idxTest < dstImageData.size() && dstImageData.at(idxTest) == false)
-						{
-							++numAvailable;
-							++idxTest;
-						}
-#endif
-
-						//imgBuf->SetPixelColor(xLeftDst,yTopDst,col.ToVector4());
-						//maxX = umath::max(maxX,static_cast<uint32_t>(xLeftDst));
-						//maxY = umath::max(maxY,static_cast<uint32_t>(yTopDst));
-
-						auto uWidthSrc = morphRectData->FindValue<double>("m_flUWidthSrc",0.0);
-						auto uHeightSrc = morphRectData->FindValue<double>("m_flVHeightSrc",0.0);
-
-						auto wRectSrc = umath::round(uWidthSrc *atlasWidth);
-						auto hRectSrc = umath::round(uHeightSrc *atlasHeight);
-
-						std::vector<Vector3> offsetsPerVertex {};
-						std::vector<uint64_t> vertexIndices {};
-						uint32_t bundleIdx = 0;
-						for(auto *bundleData : morphRectData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_bundleDatas"))
-						{
-							//auto &bundleVertexData = prBundleData[bundleIdx];
-							auto &bundleType = bundleTypes.at(bundleIdx++);
-							auto uLeftSrc = bundleData->FindValue<double>("m_flULeftSrc",0.0);
-							auto vTopSrc = bundleData->FindValue<double>("m_flVTopSrc",0.0);
-							auto offsets = bundleData->FindArrayValues<double>("m_offsets");
-							auto ranges = bundleData->FindArrayValues<double>("m_ranges");
-							assert(offsets.size() == 4 && ranges.size() == 4);
-
-							auto xRectSrc = umath::round(uLeftSrc *atlasWidth);
-							auto yRectSrc = umath::round(vTopSrc *atlasHeight);
-
-							//auto atlasRect = uimg::ImageBuffer::Create(*imgBuf,yRectSrc,xRectSrc,hRectSrc,wRectSrc);
-
-							std::vector<std::array<uint8_t,4>> atlasRectData {};
-							atlasRectData.reserve(wRectSrc *hRectSrc);
-							for(uint32_t x=0;x<wRectSrc;++x)
-							{
-								for(uint32_t y=0;y<hRectSrc;++y)
-								{
-									auto pxView = imgBuf->GetPixelView(xRectSrc +x,yRectSrc +y);
-									atlasRectData.push_back({
-										pxView.GetLDRValue(uimg::ImageBuffer::Channel::Red),
-										pxView.GetLDRValue(uimg::ImageBuffer::Channel::Green),
-										pxView.GetLDRValue(uimg::ImageBuffer::Channel::Blue),
-										pxView.GetLDRValue(uimg::ImageBuffer::Channel::Alpha)
-									});
-								}
-							}
-
-							auto *rawData = reinterpret_cast<uint8_t*>(atlasRectData.data());//static_cast<uint8_t*>(atlasRect->GetData());
-							auto rawSize = atlasRectData.size() *sizeof(uint8_t) *4;//atlasRect->GetSize();
-
-							std::vector<Vector4> transformedData {};
-							transformedData.resize(rawSize /4);
-							for(auto i=decltype(rawSize){0u};i<rawSize;i+=4)
-							{
-								for(uint8_t j=0;j<4;++j)
-									transformedData.at(i /4)[j] = (rawData[i +j] /static_cast<float>(std::numeric_limits<uint8_t>::max())) *ranges.at(j) +offsets.at(j);
-							}
-
-							if(name == "jawDrop")
-							{
-								std::cout<<"";
-							}
-
-							auto startVertexIndex = yRectDst *wRectDst +xRectDst;
-							if(bundleType == "MORPH_BUNDLE_TYPE_POSITION_SPEED")
-							{
-								uint32_t i = 0;
-								auto dst_y = yRectDst;
-								auto dst_x = xRectDst;
-								auto rect_width = wRectSrc;
-								auto rect_height = hRectSrc;
-								for(uint32_t x=dst_x;x<(dst_x +rect_width);++x)
-								{
-									for(uint32_t y=dst_y;y<(dst_y +rect_height);++y)
-									{
-										auto &v = transformedData[i];
-										//bundleVertexData[x *rect_height +(y -dst_y)] = v;
-										dstImage->SetPixelColor(x,y,v);
-										++i;
-									}
-								}
-							}
-						}
-					}
-
-					auto &bd = prBundleData[0];
-					auto *data = dstImage->GetData();
-					std::vector<Vector4> vData {};
-					vData.resize(morphDstWidth *morphDstHeight);
-					memcpy(vData.data(),data,vData.size() *sizeof(vData.front()));
-					for(uint32_t i=0;i<vData.size();++i)
-						bd[i] = vData[i];
-				}
-			}
-
-			uint32_t s2FlexIdx = 0;
-			for(auto *flexDesc : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_FlexDesc"))
-			{
-				auto szFacs = flexDesc->FindValue<std::string>("m_szFacs");
-				if(szFacs.has_value())
-				{
-					auto flexIdx = mdl.GetFlexCount();
-					auto &flex = mdl.AddFlex(*szFacs);
-					s2FlexDescToPragma[s2FlexIdx] = flexIdx;
-					auto vertAnim = mdl.AddVertexAnimation("flex_" +*szFacs);
-
-				}
-				++s2FlexIdx;
-			}
-		}
+		load_morph_targets(nw,*morphData,mdl,s2FlexDescToPragma);
+		morphBlocks.push_back(morphData);
 	}
 
 	auto s2Meshes = s2Mdl.GetEmbeddedMeshes();
@@ -862,10 +916,6 @@ std::shared_ptr<Model> source2::convert::convert_model(
 			lodGroupId = fLookupMeshGroup(mdl,lodGroup->GetName());
 			mdl.AddMeshGroup(lodGroup);
 		}
-
-		auto *data = s2Mesh->GetResourceData()->GetData();
-		if(data)
-			initialize_scene_objects(nw,mdl,lodGroupId,*s2Mesh->GetVBIB(),*data,s2Skeleton.get(),meshIdx,useForMorphs ? &vbibVertexBufferOffsets : nullptr,useForMorphs ? &vbibVertexIndexToPragmaMeshId : nullptr);
 	}
 
 	auto refMeshGroupMasks = s2Mdl.GetData()->FindArrayValues<int64_t>("m_refMeshGroupMasks");
@@ -887,6 +937,23 @@ std::shared_ptr<Model> source2::convert::convert_model(
 		auto *dataBlock = dynamic_cast<source2::resource::BinaryKV3*>(resource->FindBlock(source2::BlockType::DATA));
 		if(vbib == nullptr || dataBlock == nullptr)
 			continue;
+		auto morphSet = dataBlock->GetData()->FindValue<std::string>("m_morphSet");
+		if(morphSet.has_value())
+		{
+			auto fileName = *morphSet +"_c";
+			auto resource = ::load_resource(nw,fileName);
+			if(resource != nullptr)
+			{
+				auto *morph = resource ? dynamic_cast<source2::resource::KeyValuesOrNTRO*>(resource->FindBlock(source2::BlockType::MRPH)) : nullptr;
+				auto *data = dynamic_cast<source2::resource::ResourceData*>(resource->FindBlock(source2::BlockType::DATA));
+				if(data)
+				{
+					load_morph_targets(nw,*data->GetData(),mdl,s2FlexDescToPragma);
+					morphBlocks.push_back(data->GetData()->shared_from_this());
+				}
+			}
+		}
+
 		initialize_scene_objects(nw,mdl,refMeshGroupIdx,*vbib,*dataBlock->GetData(),s2Skeleton.get(),meshIdx,&vbibVertexBufferOffsets,&vbibVertexIndexToPragmaMeshId);
 	}
 
@@ -965,7 +1032,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 				auto boneListIdx = it->second;
 
 				auto &s2FrameBone = pair.second;
-				pragma::physics::Transform pose {s2FrameBone.position,s2FrameBone.rotation};
+				umath::Transform pose {s2FrameBone.position,s2FrameBone.rotation};
 				frame->SetBonePose(boneListIdx,pose);
 			}
 			anim->AddFrame(frame);
@@ -974,9 +1041,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 		mdl.AddAnimation(s2Anim->GetName(),anim);
 	}
 
-	auto *morph = optResource ? dynamic_cast<source2::resource::KeyValuesOrNTRO*>(optResource->FindBlock(source2::BlockType::MRPH)) : nullptr;
-	auto morphData = morph ? morph->GetData() : nullptr;
-	if(morphData)
+	for(auto &morphData : morphBlocks)
 	{
 		auto textureAtlasPath = morphData->FindValue<std::string>("m_pTextureAtlas");
 		auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c") : nullptr;
@@ -1185,15 +1250,27 @@ std::shared_ptr<Model> source2::convert::convert_model(
 					auto opCode = flexOp->FindValue<std::string>("m_OpCode","");
 					auto data = flexOp->FindValue<int32_t>("m_Data",0);
 
-					auto itOpTpe = g_flexOpTable.find(opCode);
-					if(itOpTpe == g_flexOpTable.end())
+					std::optional<Flex::Operation::Type> opType {};
+					if(::ustring::is_integer(opCode))
+					{
+						auto it = g_s2FlexToPragma.find(static_cast<S2FlexOp>(ustring::to_int(opCode)));
+						if(it != g_s2FlexToPragma.end())
+							opType = it->second;
+					}
+					else
+					{
+						auto it = g_flexOpTable.find(opCode);
+						if(it != g_flexOpTable.end())
+							opType = it->second;
+					}
+					if(opType.has_value() == false)
 						Con::cwar<<"WARNING: Unsupported flex operator code '"<<opCode<<"'! Skipping..."<<Con::endl;
 					else
 					{
 						ops.push_back({});
 						auto &op = ops.back();
 						op.d.index = data;
-						op.type = itOpTpe->second;
+						op.type = *opType;
 					}
 				}
 			}
@@ -1221,7 +1298,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 			v = source2::impl::convert_source2_vector_to_pragma(v);
 	}
 	//Vector3 source2::impl::convert_source2_vector_to_pragma(const Vector3 &v)
-	auto fTranslateBonePoseToPragma = [](pragma::physics::Transform &pose) {
+	auto fTranslateBonePoseToPragma = [](umath::Transform &pose) {
 		auto &pos = pose.GetOrigin();
 		auto &rot = pose.GetRotation();
 		// These were determined through testing.
@@ -1242,17 +1319,17 @@ std::shared_ptr<Model> source2::convert::convert_model(
 		fTranslateBonePoseToPragma(t);
 
 	// Reference pose bones are in parent space, we need them in global space
-	std::function<void(Bone&,const pragma::physics::Transform&)> fRelativeToGlobal = nullptr;
-	fRelativeToGlobal = [&fRelativeToGlobal,&refPose](Bone &bone,const pragma::physics::Transform &parentPose) {
+	std::function<void(Bone&,const umath::Transform&)> fRelativeToGlobal = nullptr;
+	fRelativeToGlobal = [&fRelativeToGlobal,&refPose](Bone &bone,const umath::Transform &parentPose) {
 		auto *pPose = refPose.GetBoneTransform(bone.ID);
-		auto pose = pPose ? *pPose : pragma::physics::Transform{};
+		auto pose = pPose ? *pPose : umath::Transform{};
 		pose = parentPose *pose;
 
 		refPose.SetBonePose(bone.ID,pose);
 		for(auto &pair : bone.children)
 			fRelativeToGlobal(*pair.second,pose);
 	};
-	pragma::physics::Transform rootBoneTransform {Vector3{},uquat::create(EulerAngles{90.f,90.f,0.f})};
+	umath::Transform rootBoneTransform {Vector3{},uquat::create(EulerAngles{90.f,90.f,0.f})};
 	for(auto &rootBone : skeleton.GetRootBones())
 		fRelativeToGlobal(*rootBone.second,rootBoneTransform);
 	for(auto &anim : mdl.GetAnimations())
