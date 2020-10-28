@@ -66,10 +66,12 @@ std::shared_ptr<pragma::asset::vbsp::BSPTree> pragma::asset::vbsp::BSPTree::Crea
 	auto &nodes = bsp.GetNodes();
 	if(nodes.empty())
 		return tree;
+	auto &clusterVisibility = bsp.GetVisibilityData();
+	if(clusterVisibility.empty())
+		return tree; // Some maps don't seem to have cluster visibility information? I'm not sure what's causing it (Maybe vvis disabled during compilation?)
 	tree->m_nodes.reserve(bsp.GetLeaves().size() +bsp.GetNodes().size());
 	tree->m_rootNode = tree->CreateNode(bsp,0);
 
-	auto &clusterVisibility = bsp.GetVisibilityData();
 	auto numClusters = tree->m_clusterCount = clusterVisibility.size();
 	auto numCompressedClusters = umath::pow2(numClusters);
 	numCompressedClusters = numCompressedClusters /8u +((numCompressedClusters %8u) > 0u ? 1u : 0u);

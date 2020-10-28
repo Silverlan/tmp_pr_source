@@ -91,7 +91,7 @@ std::shared_ptr<pragma::asset::WorldData> source2::convert::convert_map(Game &ga
 
 	// These are somewhat arbitrary but seem to create results that match the original colors closely (tested with the Russell's Lab VR demo)
 	world->SetLightMapIntensity(1.f /static_cast<float>(std::numeric_limits<uint8_t>::max()));
-	world->SetLightMapSqrtFactor(1.f);
+	world->SetLightMapExposure(-1.f);
 	
 	for(auto &ent : scene->GetEntities())
 	{

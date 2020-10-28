@@ -916,6 +916,9 @@ std::shared_ptr<Model> source2::convert::convert_model(
 			lodGroupId = fLookupMeshGroup(mdl,lodGroup->GetName());
 			mdl.AddMeshGroup(lodGroup);
 		}
+		auto *data = s2Mesh->GetResourceData()->GetData();
+		if(data)
+			initialize_scene_objects(nw,mdl,lodGroupId,*s2Mesh->GetVBIB(),*data,s2Skeleton.get(),meshIdx,useForMorphs ? &vbibVertexBufferOffsets : nullptr,useForMorphs ? &vbibVertexIndexToPragmaMeshId : nullptr);
 	}
 
 	auto refMeshGroupMasks = s2Mdl.GetData()->FindArrayValues<int64_t>("m_refMeshGroupMasks");
