@@ -1863,7 +1863,7 @@ std::shared_ptr<Model> import::load_mdl(
 							std::unordered_map<uint32_t,uint32_t> meshIds = {};
 							auto meshGroupIdx = lodIdx;
 							meshIds[0] = meshGroupIdx;
-							mdl.AddLODInfo(lodIdx,meshIds);
+							mdl.AddLODInfo(lodIdx,vtxLod.header.switchPoint,meshIds);
 						}
 					}
 					bodyPartVertexIndexStart += model.vertexCount;

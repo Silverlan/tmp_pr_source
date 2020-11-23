@@ -81,6 +81,8 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		auto mdl = GenerateModel(*pair.first,*lightmapData,materials);
 		if(mdl == nullptr)
 			continue;
+		if(pair.first->IsWorld())
+			OptimizeLevelGeometry(*mdl);
 		models.push_back(ModelInfo{mdl,pair.first});
 	}
 
@@ -416,7 +418,7 @@ void pragma::asset::vbsp::BSPConverter::ConvertEntityData()
 			entBlock->keyvalues.insert(std::make_pair("color",std::vector<std::string>{WLD_DEFAULT_AMBIENT_COLOR.ToString()}));
 			auto skybox = fGetKeyValue(entBlock,"skyname");
 			if(skybox == "painted") // Painted skyboxes are currently not supported, so we'll default to another one
-				skybox = "skybox/dawn2";
+				skybox = "skybox/dawn3";
 			else
 				skybox = "skybox/" +skybox;
 			if(itSkybox != texStringData.end())

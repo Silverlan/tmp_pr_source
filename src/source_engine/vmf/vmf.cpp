@@ -558,7 +558,7 @@ static void merge_meshes(std::vector<std::shared_ptr<PolyMesh>> &meshes,Material
 			glm::vec3 minOther;
 			glm::vec3 maxOther;
 			polyMeshOther->GetBounds(&minOther,&maxOther);
-			if(Intersection::AABBAABB(min,max,minOther,maxOther) != INTERSECT_OUTSIDE)
+			if(Intersection::AABBAABB(min,max,minOther,maxOther) != Intersection::Intersect::Outside)
 			{
 				for(auto it=polys.begin();it!=polys.end();++it)
 				{
@@ -822,7 +822,7 @@ static void smooth_touching_poly_normals(const std::vector<std::shared_ptr<PolyM
 			polyInfoOther.poly->GetBounds(&minOther,&maxOther);
 			minOther -= margin;
 			maxOther += margin;
-			if(Intersection::AABBAABB(min,max,minOther,maxOther) == INTERSECT_OUTSIDE)
+			if(Intersection::AABBAABB(min,max,minOther,maxOther) == Intersection::Intersect::Outside)
 				continue;
 			auto &polyVertsOther = polyInfoOther.poly->GetVertices();
 			auto &polyOutlineOther = polyInfoOther.outline;

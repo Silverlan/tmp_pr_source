@@ -5,8 +5,11 @@
 #include <pragma/model/model.h>
 #include <pragma/model/modelmesh.h>
 #include <pragma/math/intersection.h>
+#include <sharedutils/util_hash.hpp>
 #include <util_vmf.hpp>
 #include <memory>
+#include <thread>
+#include <mutex>
 
 #pragma optimize("",off)
 std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityData &entData,LightmapData &lightMapInfo,const std::vector<MaterialHandle> &materials)
@@ -428,8 +431,9 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 	// Build model
 	auto mdl = game.CreateModel();
 	auto meshGroup = mdl->GetMeshGroup(0u);
-	meshGroup->GetMeshes().reserve(numMeshes);
-	auto meshIndex = 0u;
+	meshGroup->GetMeshes().reserve(1);
+	auto mesh = game.CreateModelMesh();
+	mesh->GetSubMeshes().reserve(numMeshes +displacementRanges.size());
 	for(auto &pairCluster : clusterMeshes)
 	{
 		auto &clusterMesh = pairCluster.second;
@@ -438,7 +442,6 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 			auto &matMesh = pairMat.second;
 			std::optional<uint32_t> skinTexIdx {};
 			auto matIdx = mdl->AddMaterial(0u,materials.at(pairMat.first).get(),&skinTexIdx);
-			auto mesh = game.CreateModelMesh();
 			auto subMesh = game.CreateModelSubMesh();
 
 			auto &meshVerts = subMesh->GetVertices();
@@ -471,12 +474,8 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 				}
 			}
 			subMesh->SetSkinTextureIndex(skinTexIdx.has_value() ? *skinTexIdx : 0);
-			if(useLightmaps)
-				subMesh->SetReferenceId(meshIndex++); // Mesh index; Needed to associate mesh with light map uv buffer
+			subMesh->SetReferenceId(pairCluster.first); // Cluster index; Needed to determine visibility in BSP occlusion culling (only used for world entity)
 			mesh->AddSubMesh(subMesh);
-			mesh->SetReferenceId(pairCluster.first); // Cluster index; Needed to determine visibility in BSP occlusion culling (only used for world entity)
-
-			meshGroup->AddMesh(mesh);
 		}
 	}
 
@@ -486,7 +485,6 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 		auto &triInfo = bspTriangles.at(range.first);
 		std::optional<uint32_t> skinTexIdx {};
 		auto matIdx = mdl->AddMaterial(0u,materials.at(triInfo.materialIndex).get(),&skinTexIdx);
-		auto mesh = game.CreateModelMesh();
 		auto subMesh = game.CreateModelSubMesh();
 		auto &uvSets = subMesh->GetUVSets();
 		std::vector<Vector2> *meshLightmapUvs = nullptr;
@@ -541,13 +539,11 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 			}
 		}
 		subMesh->SetSkinTextureIndex(skinTexIdx.has_value() ? *skinTexIdx : 0);
-		subMesh->SetReferenceId(meshIndex++); // Mesh index; Needed to associate mesh with light map uv buffer
+		subMesh->SetReferenceId(std::numeric_limits<uint32_t>::max());
 		mesh->AddSubMesh(subMesh);
-		mesh->SetReferenceId(std::numeric_limits<uint32_t>::max());
-
-		meshGroup->AddMesh(mesh);
 	}
 	//
+	meshGroup->AddMesh(mesh);
 
 	// Collisions
 	if(bspData)
@@ -559,4 +555,358 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 	}
 	return mdl;
 }
+
+void pragma::asset::vbsp::BSPConverter::OptimizeLevelGeometry(Model &mdl)
+{
+	auto &bsp = *m_bsp;
+	auto &worldData = *m_outputWorldData;
+	auto *bspTree = worldData.GetBSPTree();
+	if(bspTree == nullptr)
+		return;
+	auto numClusters = bspTree->GetClusterCount();
+
+	auto meshGroup = mdl.GetMeshGroup(0);
+	if(meshGroup == nullptr)
+		return;
+
+	m_messageLogger("Optimizing world level geometry...");
+
+	// Collect list of world geometry meshes
+	std::vector<std::shared_ptr<ModelSubMesh>> modelMeshes;
+	std::unordered_map<ModelSubMesh*,ModelMesh*> subMeshToMesh;
+	std::unordered_map<ModelSubMesh*,WorldModelMeshIndex> meshToMeshIdx;
+	modelMeshes.reserve(mdl.GetSubMeshCount());
+	auto &meshes = meshGroup->GetMeshes();
+	WorldModelMeshIndex meshIdx = 0;
+	for(auto &mesh : meshes)
+	{
+		for(auto &subMesh : mesh->GetSubMeshes())
+		{
+			modelMeshes.push_back(subMesh);
+			subMeshToMesh[subMesh.get()] = mesh.get();
+			meshToMeshIdx[subMesh.get()] = meshIdx++;
+		}
+	}
+
+	std::vector<std::vector<WorldModelMeshIndex>> meshesPerClusters;
+	std::vector<std::vector<util::BSPTree::ClusterIndex>> clustersPerMesh;
+	meshesPerClusters.resize(numClusters);
+	clustersPerMesh.resize(modelMeshes.size());
+	auto fAddClusterMesh = [&meshesPerClusters,&clustersPerMesh](util::BSPTree::ClusterIndex clusterIndex,WorldModelMeshIndex meshIdx,bool checkUnique=false) {
+		auto &clusterMeshes = meshesPerClusters.at(clusterIndex);
+		if(checkUnique && std::find(clusterMeshes.begin(),clusterMeshes.end(),meshIdx) != clusterMeshes.end())
+			return;
+		if(clusterMeshes.size() == clusterMeshes.capacity())
+			clusterMeshes.reserve(clusterMeshes.size() *1.1 +100);
+		clusterMeshes.push_back(meshIdx);
+		clustersPerMesh[meshIdx].push_back(clusterIndex);
+	};
+	for(auto meshIdx=decltype(modelMeshes.size()){0u};meshIdx<modelMeshes.size();++meshIdx)
+	{
+		auto &subMesh = modelMeshes.at(meshIdx);
+		auto it = subMeshToMesh.find(subMesh.get());
+		if(it == subMeshToMesh.end())
+			continue;
+		auto *mesh = it->second;
+		auto meshClusterIdx = subMesh->GetReferenceId();
+		if(meshClusterIdx == std::numeric_limits<uint32_t>::max())
+		{
+			mesh->Update(ModelUpdateFlags::UpdateBounds | ModelUpdateFlags::UpdateChildren);
+			// Probably a displacement, which don't have a single cluster associated with them.
+			// We'll have to determine which clusters they belong to manually.
+			Vector3 min,max;
+			mesh->GetBounds(min,max);
+			auto leafNodes = bspTree->FindLeafNodesInAABB(min,max);
+			std::unordered_set<util::BSPTree::ClusterIndex> clusters;
+			for(auto *node : leafNodes)
+			{
+				auto meshClusterIdx = node->cluster;
+				if(meshClusterIdx == std::numeric_limits<util::BSPTree::ClusterIndex>::max())
+					continue;
+				for(auto clusterIdx=decltype(numClusters){0u};clusterIdx<numClusters;++clusterIdx)
+				{
+					if(bspTree->IsClusterVisible(clusterIdx,meshClusterIdx) == false)
+						continue;
+					auto it = clusters.find(clusterIdx);
+					if(it != clusters.end())
+						continue;
+					clusters.insert(clusterIdx);
+					fAddClusterMesh(clusterIdx,meshIdx);
+				}
+			}
+			continue;
+		}
+		for(auto clusterIdx=decltype(numClusters){0u};clusterIdx<numClusters;++clusterIdx)
+		{
+			if(bspTree->IsClusterVisible(clusterIdx,meshClusterIdx) == false)
+				continue;
+			fAddClusterMesh(clusterIdx,meshIdx);
+		}
+	}
+
+	struct ClusterSharedMeshPair
+	{
+		WorldModelMeshIndex mesh0 = 0;
+		WorldModelMeshIndex mesh1 = 0;
+		uint32_t numClustersWithSharedVisibility = 0;
+		// Describes the percentage of clusters where both meshes are visible
+		// in relation to the number of clusters where either mesh is visible
+		float clusterVisibilityPercentage = 0.f;
+	};
+	std::unordered_map<uint64_t,ClusterSharedMeshPair> clusterMeshPairs;
+	clusterMeshPairs.reserve(numClusters *numClusters);
+
+	auto fFindMeshInCluster = [&meshesPerClusters](WorldModelMeshIndex idx) -> std::optional<uint32_t> {
+		for(auto icluster=decltype(meshesPerClusters.size()){0u};icluster<meshesPerClusters.size();++icluster)
+		{
+			auto &meshList = meshesPerClusters.at(icluster);
+			auto it = std::find(meshList.begin(),meshList.end(),idx);
+			if(it == meshList.end())
+				continue;
+			return icluster;
+		}
+		return {};
+	};
+
+	auto fGetMeshPairHash = [](WorldModelMeshIndex mesh0,WorldModelMeshIndex mesh1) {
+		auto first = (mesh0 < mesh1) ? mesh0 : mesh1;
+		auto second = (first != mesh0) ? mesh0 : mesh1;
+		auto hash = util::hash_combine(0,first);
+		return util::hash_combine(hash,second);
+	};
+	std::vector<std::vector<util::BSPTree::ClusterIndex>> meshToClusters;
+	meshToClusters.resize(modelMeshes.size());
+	for(auto clusterIdx=decltype(meshesPerClusters.size()){0u};clusterIdx<meshesPerClusters.size();++clusterIdx)
+	{
+		auto &clusterMeshIndices = meshesPerClusters.at(clusterIdx);
+		for(auto meshIdx : clusterMeshIndices)
+			meshToClusters.at(meshIdx).push_back(clusterIdx);
+	}
+
+	/*std::vector<std::vector<uint32_t>> clusterToClusterVisibility;
+	clusterToClusterVisibility.resize(numClusters,std::vector<uint32_t>(numClusters,0));
+	for(auto i=decltype(numClusters){0u};i<numClusters;++i)
+	{
+		for(auto j=i;j<numClusters;++j)
+		{
+			for(auto k=0;k<numClusters;++k)
+			{
+				auto sharedVisibility = bspTree->IsClusterVisible(i,k) && bspTree->IsClusterVisible(j,k);
+				if(sharedVisibility == false)
+					continue;
+				++clusterToClusterVisibility[i][j];
+				++clusterToClusterVisibility[j][i];
+			}
+		}
+	}*/
+
+	std::queue<uint32_t> workQueue;
+	std::mutex workQueueMutex;
+	std::mutex clusterMeshPairMutex;
+	for(auto meshIdx=decltype(modelMeshes.size()){0u};meshIdx<modelMeshes.size();++meshIdx)
+		workQueue.push(meshIdx);
+	std::array<std::thread,20> threadPool;
+	for(auto i=decltype(threadPool.size()){0u};i<threadPool.size();++i)
+	{
+		threadPool.at(i) = std::thread{[&workQueue,&workQueueMutex,&modelMeshes,&meshToClusters,&fGetMeshPairHash,&clusterMeshPairs,&clusterMeshPairMutex,&bspTree]() {
+			for(;;)
+			{
+				workQueueMutex.lock();
+					if(workQueue.empty())
+					{
+						workQueueMutex.unlock();
+						return;
+					}
+					auto meshIdx0 = workQueue.front();
+					workQueue.pop();
+				workQueueMutex.unlock();
+
+				auto &mesh0 = modelMeshes.at(meshIdx0);
+				auto &clusters0 = meshToClusters.at(meshIdx0);
+				auto meshClusterIdx0 = mesh0->GetReferenceId();
+				for(auto meshIdx1=meshIdx0 +1;meshIdx1<modelMeshes.size();++meshIdx1)
+				{
+					auto &mesh1 = modelMeshes.at(meshIdx1);
+					if(mesh1->GetSkinTextureIndex() != mesh0->GetSkinTextureIndex())
+						continue;
+					auto &clusters1 = meshToClusters.at(meshIdx1);
+					auto meshClusterIdx1 = mesh1->GetReferenceId();
+					auto numClustersWithSharedVisibility = std::count_if(clusters0.begin(),clusters0.end(),[&clusters1,&bspTree](util::BSPTree::ClusterIndex cluster0) {
+						return std::find_if(clusters1.begin(),clusters1.end(),[&bspTree,cluster0](util::BSPTree::ClusterIndex cluster1) {return bspTree->IsClusterVisible(cluster0,cluster1);}) != clusters1.end();
+					});
+
+					if(numClustersWithSharedVisibility == 0)
+						continue;
+					auto hash = fGetMeshPairHash(meshIdx0,meshIdx1);
+					clusterMeshPairMutex.lock();
+						auto it = clusterMeshPairs.find(hash);
+						assert(it == clusterMeshPairs.end());
+						it = clusterMeshPairs.insert(std::make_pair(hash,ClusterSharedMeshPair{})).first;
+						it->second.mesh0 = meshIdx0;
+						it->second.mesh1 = meshIdx1;
+						it->second.numClustersWithSharedVisibility = numClustersWithSharedVisibility;
+					clusterMeshPairMutex.unlock();
+				}
+			}
+		}};
+	}
+
+	for(auto i=decltype(threadPool.size()){0u};i<threadPool.size();++i)
+		threadPool.at(i).join();
+
+	for(auto &pair : clusterMeshPairs)
+	{
+		auto max = umath::max(meshToClusters.at(pair.second.mesh0).size(),meshToClusters.at(pair.second.mesh1).size());
+		pair.second.clusterVisibilityPercentage = pair.second.numClustersWithSharedVisibility /static_cast<float>(max);
+		assert(pair.second.clusterVisibilityPercentage <= 1.f);
+	}
+
+
+	std::vector<uint64_t> sortedClusterMeshPairs;
+	sortedClusterMeshPairs.reserve(clusterMeshPairs.size());
+	for(auto &pair : clusterMeshPairs)
+		sortedClusterMeshPairs.push_back(pair.first);
+
+	std::sort(sortedClusterMeshPairs.begin(),sortedClusterMeshPairs.end(),[&clusterMeshPairs](size_t hash0,size_t hash1) {
+		return clusterMeshPairs[hash0].clusterVisibilityPercentage > clusterMeshPairs[hash1].clusterVisibilityPercentage;
+	});
+
+	const auto threshold = 0.33f;
+	using MeshMergeIndex = uint32_t;
+	std::vector<std::vector<WorldModelMeshIndex>> mergeInfoTable;
+	std::unordered_map<WorldModelMeshIndex,MeshMergeIndex> meshMergeList;
+	for(auto idx : sortedClusterMeshPairs)
+	{
+		auto &pair = clusterMeshPairs[idx];
+		if(pair.clusterVisibilityPercentage < threshold)
+			break;
+		auto it0 = meshMergeList.find(pair.mesh0);
+		auto it1 = meshMergeList.find(pair.mesh1);
+		if(it0 != meshMergeList.end() && it1 != meshMergeList.end())
+			continue; // Both meshes are already merged with others
+		if(it0 == meshMergeList.end() && it1 == meshMergeList.end())
+		{
+			// Neither mesh has been merged with anything, mark them as
+			// a new merge pair
+			auto idx = mergeInfoTable.size();
+			meshMergeList[pair.mesh0] = idx;
+			meshMergeList[pair.mesh1] = idx;
+			mergeInfoTable.push_back({pair.mesh0,pair.mesh1});
+			continue;
+		}
+		// Either of the meshes has already been merged with another
+		auto itDst = (it0 != meshMergeList.end()) ? it0 : it1;
+		auto meshIdxSrc = (it0 != meshMergeList.end()) ? pair.mesh1 : pair.mesh0;
+		auto mergeIdx = itDst->second;
+		auto &meshIndices = mergeInfoTable.at(mergeIdx);
+		auto isMeshVisibilityWithinThreshold = true;
+		for(auto meshIdx : meshIndices)
+		{
+			auto hash = fGetMeshPairHash(meshIdx,meshIdxSrc);
+			auto it = clusterMeshPairs.find(hash);
+			if(it == clusterMeshPairs.end())
+			{
+				// Meshes have no shared visibility at all
+				isMeshVisibilityWithinThreshold = false;
+				break;
+			}
+			auto &pairInfo = it->second;
+			if(pairInfo.clusterVisibilityPercentage >= threshold)
+				continue;
+			isMeshVisibilityWithinThreshold = false;
+			break;
+		}
+		if(isMeshVisibilityWithinThreshold == false)
+			continue; // Don't merge
+		meshMergeList[meshIdxSrc] = mergeIdx;
+		mergeInfoTable.at(mergeIdx).push_back(meshIdxSrc);
+	}
+
+	std::unordered_map<WorldModelMeshIndex,WorldModelMeshIndex> mergedMeshMap;
+	for(auto &mergeList : mergeInfoTable)
+	{
+		if(mergeList.size() <= 1)
+			continue;
+		auto meshIdxDst = mergeList.front();
+		auto &meshDst = modelMeshes.at(meshIdxDst);
+		for(auto it=mergeList.begin() +1;it<mergeList.end();++it)
+		{
+			auto meshIdxSrc = *it;
+			auto &meshSrc = modelMeshes.at(meshIdxSrc);
+			meshDst->Merge(*meshSrc);
+			for(auto clusterIdx : meshToClusters.at(meshIdxSrc))
+				fAddClusterMesh(clusterIdx,meshIdxDst,true);
+			mergedMeshMap[meshIdxSrc] = meshIdxDst;
+		}
+	}
+
+	std::unordered_map<ModelSubMesh*,WorldModelMeshIndex> oldMeshIndices;
+	for(auto i=decltype(modelMeshes.size()){0u};i<modelMeshes.size();++i)
+		oldMeshIndices[modelMeshes.at(i).get()] = i;
+
+	for(auto itMesh=meshes.begin();itMesh!=meshes.end();)
+	{
+		auto &mesh = *itMesh;
+		auto &subMeshes = mesh->GetSubMeshes();
+		for(auto itSubMesh=subMeshes.begin();itSubMesh!=subMeshes.end();)
+		{
+			auto &subMesh = *itSubMesh;
+			auto it = mergedMeshMap.find(meshToMeshIdx[subMesh.get()]);
+			if(it == mergedMeshMap.end())
+			{
+				++itSubMesh;
+				continue;
+			}
+			itSubMesh = subMeshes.erase(itSubMesh);
+		}
+		if(subMeshes.empty() == false)
+		{
+			++itMesh;
+			continue;
+		}
+		itMesh = meshes.erase(itMesh);
+	}
+
+	std::unordered_map<WorldModelMeshIndex,WorldModelMeshIndex> oldMeshIndexToNewIndex;
+	oldMeshIndexToNewIndex.reserve(mdl.GetSubMeshCount());
+	WorldModelMeshIndex newMeshIndex = 0;
+	for(auto &mesh : meshes)
+	{
+		for(auto &subMesh : mesh->GetSubMeshes())
+			oldMeshIndexToNewIndex[oldMeshIndices[subMesh.get()]] = newMeshIndex++;
+	}
+
+	// Translate indices
+	for(auto &meshIndices : meshesPerClusters)
+	{
+		std::unordered_set<WorldModelMeshIndex> meshIndexSet;
+		for(auto meshIdx : meshIndices)
+		{
+			auto itTranslate = mergedMeshMap.find(meshIdx);
+			if(itTranslate != mergedMeshMap.end())
+			{
+				// Mesh was merged into another; Use the index of the mesh it was merged into
+				meshIndexSet.insert(oldMeshIndexToNewIndex[itTranslate->second]);
+				continue;
+			}
+			auto it = oldMeshIndexToNewIndex.find(meshIdx);
+			if(it == oldMeshIndexToNewIndex.end())
+				continue;
+			meshIndexSet.insert(it->second);
+		}
+		meshIndices.clear();
+		meshIndices.reserve(meshIndexSet.size());
+		for(auto meshIdx : meshIndexSet)
+			meshIndices.push_back(meshIdx);
+	}
+
+	mdl.Update();
+
+	m_messageLogger("Original mesh count: " +std::to_string(modelMeshes.size()));
+	m_messageLogger("Number of meshes that have been merged: " +std::to_string(meshMergeList.size()));
+	m_messageLogger("Number of meshes after merging: " +std::to_string((mergeInfoTable.size() +(modelMeshes.size() -meshMergeList.size()))));
+
+	worldData.GetClusterMeshIndices() = std::move(meshesPerClusters);
+}
+
 #pragma optimize("",on)

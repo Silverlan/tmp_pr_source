@@ -231,6 +231,7 @@ namespace pragma::asset::vbsp
 		void ConvertWorldGeometry();
 		std::shared_ptr<Model> GenerateModel(EntityData &entData,LightmapData &lightmapInfo,const std::vector<MaterialHandle> &materials);
 		std::vector<std::shared_ptr<CollisionMesh>> GeneratePhysics(asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,const std::vector<MaterialHandle> &materials);
+		void OptimizeLevelGeometry(Model &mdl);
 
 		std::string m_path;
 		std::unique_ptr<bsp::File> m_bsp = nullptr;
