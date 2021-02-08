@@ -558,7 +558,7 @@ static void merge_meshes(std::vector<std::shared_ptr<PolyMesh>> &meshes,Material
 			glm::vec3 minOther;
 			glm::vec3 maxOther;
 			polyMeshOther->GetBounds(&minOther,&maxOther);
-			if(Intersection::AABBAABB(min,max,minOther,maxOther) != Intersection::Intersect::Outside)
+			if(umath::intersection::aabb_aabb(min,max,minOther,maxOther) != umath::intersection::Intersect::Outside)
 			{
 				for(auto it=polys.begin();it!=polys.end();++it)
 				{
@@ -790,7 +790,7 @@ static void smooth_touching_poly_normals(const std::vector<std::shared_ptr<PolyM
 				uvec::rotate(&v,rot);
 				polyVerts2d.push_back(Vector2{v.x,v.z});
 			}
-			auto outline = Geometry::get_outline_vertices(polyVerts2d);
+			auto outline = umath::geometry::get_outline_vertices(polyVerts2d);
 			if(outline.has_value() == false)
 				Con::cwar<<"WARNING: Unable to generate outline for poly! Skipping..."<<Con::endl;
 			else
@@ -822,7 +822,7 @@ static void smooth_touching_poly_normals(const std::vector<std::shared_ptr<PolyM
 			polyInfoOther.poly->GetBounds(&minOther,&maxOther);
 			minOther -= margin;
 			maxOther += margin;
-			if(Intersection::AABBAABB(min,max,minOther,maxOther) == Intersection::Intersect::Outside)
+			if(umath::intersection::aabb_aabb(min,max,minOther,maxOther) == umath::intersection::Intersect::Outside)
 				continue;
 			auto &polyVertsOther = polyInfoOther.poly->GetVertices();
 			auto &polyOutlineOther = polyInfoOther.outline;

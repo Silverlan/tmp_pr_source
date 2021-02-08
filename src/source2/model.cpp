@@ -231,7 +231,7 @@ static void initialize_scene_objects(
 			auto cullDataIndex = drawCall->FindValue<int64_t>("m_CullDataIndex");
 			auto hasBakedLightingFromLightMap = drawCall->FindValue<bool>("m_bHasBakedLightingFromLightMap");
 			auto material = drawCall->FindValue<std::string>("m_material");
-			ScopeGuard sg {[&globalVertexOffset,drawCall,vertexCount]() {globalVertexOffset += *vertexCount;}};
+			util::ScopeGuard sg {[&globalVertexOffset,drawCall,vertexCount]() {globalVertexOffset += *vertexCount;}};
 
 			if(primitiveType != "RENDER_PRIM_TRIANGLES")
 			{
@@ -606,7 +606,7 @@ static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueColl
 
 		for(auto *morphData : morphData.FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphDatas"))
 		{
-			ScopeGuard sg {[&morphIdx]() {++morphIdx;}};
+			util::ScopeGuard sg {[&morphIdx]() {++morphIdx;}};
 			//auto col = col0.Lerp(col1,morphIdx++ /235.f);
 
 			auto name = morphData->FindValue<std::string>("m_name","");
@@ -925,7 +925,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	uint32_t meshIdx = 0;
 	for(auto &meshName : s2Mdl.GetReferencedMeshNames())
 	{
-		ScopeGuard sg {[&meshIdx]() {++meshIdx;}};
+		util::ScopeGuard sg {[&meshIdx]() {++meshIdx;}};
 		//auto lodMask = (refMeshIdx < refLodGroupMasks.size()) ? refLodGroupMasks.at(refMeshIdx) : 0;
 		//if(!(lodMask &1)) // TODO: Load ALL lod meshes!
 		//	continue;

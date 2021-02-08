@@ -2,6 +2,7 @@
 #include "wv_source.hpp"
 #include "nif.hpp"
 #include "fbx.h"
+#include "mikumikudance/mmd.hpp"
 #include "source_engine/source_engine.hpp"
 #include "source_engine/vbsp/bsp_converter.hpp"
 #include "source_engine/vmf/util_vmf.hpp"
@@ -27,6 +28,9 @@
 #include <pragma/asset_types/world.hpp>
 #include <pragma/asset/util_asset.hpp>
 #include <pragma/game/game_resources.hpp>
+#include <pragma/asset/util_asset.hpp>
+
+#pragma optimize("",off)
 
 #pragma comment(lib,"libfbxsdk-md.lib")
 #pragma comment(lib,"lua51.lib")
@@ -41,7 +45,6 @@
 #pragma comment(lib,"materialsystem.lib")
 #pragma comment(lib,"util_archive.lib")
 
-#pragma optimize("",off)
 extern DLLENGINE Engine *engine;
 
 #include <game_mount_info.hpp>
@@ -507,9 +510,79 @@ static bool load_smd(NetworkState *nw,const std::string &name,Model &mdl,SMDMode
 
 extern DLLENGINE Engine *engine;
 
+#if 0
+static void register_importers()
+{
+	auto &assetManager = engine->GetAssetManager();
+	pragma::asset::AssetManager::ImporterInfo importerInfo {};
+	importerInfo.name = "Source Engine Model";
+	assetManager.RegisterImporter(importerInfo,pragma::asset::Type::Model,[](VFilePtr f,const std::optional<std::string> &filePath,std::string &outErrMsg) -> std::unique_ptr<pragma::asset::IAssetWrapper> {
+		if(filePath.has_value() == false)
+			return nullptr;
+		std::string ext;
+		ufile::get_extension(*filePath,&ext);
+		if(ustring::compare(ext,"mdl",false) == false)
+			return nullptr;
+		auto path = ufile::get_path_from_filename(*filePath);
+		auto mdlName = ufile::get_file_from_filename(*filePath);
+		const std::array<std::string,7> extensions = {
+			"dx80.vtx",
+			"dx90.vtx",
+			"mdl",
+			"phy",
+			"sw.vtx",
+			"vvd",
+			"ani"
+		};
+		std::optional<std::string> sourcePath = {};
+		std::unordered_map<std::string,VFilePtr> files;
+		for(auto &ext : extensions)
+		{
+			auto subPath = path +mdlName +"." +ext;
+			auto f = FileManager::OpenFile(subPath.c_str(),"rb");
+			if(f == nullptr)
+				f = uarch::load(subPath,(ext == "mdl") ? &sourcePath : nullptr);
+			
+			if(f != nullptr)
+				files[ext] = f;
+		}
+		if(files.find("dx90.vtx") != files.end())
+			files["vtx"] = files["dx90.vtx"];
+		else if(files.find("dx80.vtx") != files.end())
+			files["vtx"] = files["dx80.vtx"];
+		else if(files.find("sw.vtx") != files.end())
+			files["vtx"] = files["sw.vtx"];
+
+		if(sourcePath.has_value())
+			Con::cout<<"Found model in '"<<*sourcePath<<"'! Porting..."<<Con::endl;
+
+		std::vector<std::string> textures;
+		auto r = ::import::load_mdl(nw,files,fCreateModel,fCallback,true,textures,optLog);
+		if(r == nullptr)
+			return false;
+		return fCallback(r,path,mdlName);
+	});
+}
+#endif
+
 class Model;
 class NetworkState;
 extern "C" {
+	bool PRAGMA_EXPORT pragma_attach(std::string &errMsg)
+	{
+		pragma::asset::AssetManager::ImporterInfo importerInfo {};
+		importerInfo.name = "MikuMikuDance";
+		importerInfo.fileExtensions = {"pmx"};
+		engine->GetAssetManager().RegisterImporter(importerInfo,pragma::asset::Type::Model,[](Game &game,VFilePtr f,const std::optional<std::string> &mdlPath,std::string &errMsg) -> std::unique_ptr<pragma::asset::IAssetWrapper> {
+			auto mdl = game.CreateModel();
+			if(import::import_pmx(*game.GetNetworkState(),*mdl,f,mdlPath) == false)
+				return nullptr;
+			auto wrapper = std::make_unique<pragma::asset::ModelAssetWrapper>();
+			wrapper->SetModel(*mdl);
+			return wrapper;
+		});
+		return true;
+	}
 	void PRAGMA_EXPORT pragma_initialize_lua(Lua::Interface &lua)
 	{
 		auto &libSteamWorks = lua.RegisterLibrary("import",{
@@ -524,6 +597,12 @@ extern "C" {
 				Lua::PushBool(l,bSuccess);
 				return 1;
 			})},
+			{"import_pmx",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+				return import::import_pmx(l);
+			})},
+			{"import_vmd",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+				return import::import_vmd(l);
+			})}
 		});
 	}
 	PRAGMA_EXPORT void initialize_archive_manager()
@@ -566,6 +645,10 @@ extern "C" {
 		if(smd == nullptr)
 			return false;
 		return load_smd(&nw,animName,mdl,*smd,isCollisionMesh,outTextures);
+	}
+	PRAGMA_EXPORT bool convert_lightmap_data_to_bsp_luxel_data(NetworkState &nw,const std::string &mapPath,const uimg::ImageBuffer &imgBuf,uint32_t atlasWidth,uint32_t atlasHeight,std::string &outErrMsg)
+	{
+		return pragma::asset::vbsp::BSPConverter::ConvertLightmapToBSPLuxelData(nw,mapPath,imgBuf,atlasWidth,atlasHeight,outErrMsg);
 	}
 	PRAGMA_EXPORT bool convert_source2_map(Game &game,const std::string &path)
 	{

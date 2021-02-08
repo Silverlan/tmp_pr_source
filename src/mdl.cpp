@@ -1330,8 +1330,6 @@ std::shared_ptr<Model> import::load_mdl(
 	for(auto i=decltype(mdlInfo.sequences.size()){0};i<mdlInfo.sequences.size();++i)
 	{
 		auto &seq = mdlInfo.sequences.at(i);
-		if(seq.GetName() == "run_PRIMARY")
-			std::cout<<"!";
 		auto &pp = seq.GetPoseParameter();
 		if(pp.numBlends < 2)
 			continue;
@@ -2920,6 +2918,8 @@ std::shared_ptr<Model> import::load_mdl(
 		{
 			auto bFirst = true;
 			auto colMeshOffset = mdl.GetCollisionMeshCount();
+			std::vector<std::shared_ptr<CollisionMesh>> colMeshes;
+			colMeshes.reserve(collisionObjects.size());
 			for(auto &colObj : collisionObjects)
 			{
 				auto colMesh = CollisionMesh::Create(nw->GetGameState());
@@ -3085,7 +3085,7 @@ std::shared_ptr<Model> import::load_mdl(
 													auto &v1 = verts.at(triangles.at(i +1));
 													auto &v2 = verts.at(triangles.at(i +2));
 													Vector3 r;
-													Geometry::ClosestPointOnTriangleToPoint(v0.position,v1.position,v2.position,v,&r);
+													umath::geometry::closest_point_on_triangle_to_point(v0.position,v1.position,v2.position,v,&r);
 													auto d = uvec::distance(v,r);
 													if(d < dClosest)
 														dClosest = d;
@@ -3139,8 +3139,13 @@ std::shared_ptr<Model> import::load_mdl(
 			for(auto &pair : constraints)
 			{
 				auto &ragdollConstraint = pair.second;
-
-				auto &joint = mdl.AddJoint(JOINT_TYPE_DOF,ragdollConstraint.childIndex,ragdollConstraint.parentIndex);
+				if(ragdollConstraint.childIndex >= colMeshes.size() || ragdollConstraint.parentIndex >= colMeshes.size())
+					continue;
+				auto &child = colMeshes[ragdollConstraint.childIndex];
+				auto &parent = colMeshes[ragdollConstraint.parentIndex];
+				if(child->GetBoneParent() < 0 || parent->GetBoneParent() < 0)
+					continue;
+				auto &joint = mdl.AddJoint(JointType::DOF,child->GetBoneParent(),parent->GetBoneParent());
 
 				auto angLimitL = EulerAngles(ragdollConstraint.xmin,-ragdollConstraint.zmax,ragdollConstraint.ymin);
 				auto angLimitU = EulerAngles(ragdollConstraint.xmax,-ragdollConstraint.zmin,ragdollConstraint.ymax);

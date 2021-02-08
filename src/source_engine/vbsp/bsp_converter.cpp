@@ -113,10 +113,10 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		auto name = mdlInfo.entityData->GetClassName() +"_" +std::to_string(mdlInfo.entityData->GetMapIndex());
 		auto path = "maps/" +GetMapName() +"/" +name;
 		mdlInfo.entityData->SetKeyValue("model",path);
-		mdlInfo.model->Save(&m_game,path);
+		mdlInfo.model->Save(&m_game,path,"addons/converted/");
 	}
 
-	ScopeGuard sg([]() {
+	util::ScopeGuard sg([]() {
 		Con::cwar<<"----------- BSP Conversion LOG -----------"<<Con::endl;
 	});
 
@@ -170,7 +170,7 @@ void pragma::asset::vbsp::BSPConverter::ParseEntityGeometryData(pragma::asset::E
 		faceIndices.push_back(faceIndex);
 	};
 	auto fAddWaterFace = [&fInitEntityBSPData,bspWater](int32_t faceIndex) mutable {
-		auto *bspData = fInitEntityBSPData(&bspWater,"water");
+		auto *bspData = fInitEntityBSPData(&bspWater,"func_water");
 		auto &faceIndices = bspData->faceIndices;
 		if(faceIndices.size() == faceIndices.capacity())
 			faceIndices.reserve(faceIndices.size() *1.5f +100);
@@ -198,14 +198,18 @@ void pragma::asset::vbsp::BSPConverter::ParseEntityGeometryData(pragma::asset::E
 			}
 			else
 			{
-				// TODO: Is 'Warp' surface flag a reliable way of determining
-				// whether this is a water face?
 				constexpr auto skipFlags = umath::to_integral(SurfFlags::Warp) | 
 					umath::to_integral(SurfFlags::Skip) | 
 					umath::to_integral(SurfFlags::Hint) | 
 					umath::to_integral(SurfFlags::Nodraw);
-				if((faceTexInfo.flags &skipFlags) == 0) // Only add the face if it's not a water face
+				if((faceTexInfo.flags &skipFlags) == 0) // Only add the face if it's not a water or tool face
 					faceIndices.push_back(faceIndex);
+
+				
+				// TODO: Is 'Warp' surface flag a reliable way of determining
+				// whether this is a water face?
+				if(faceTexInfo.flags &umath::to_integral(SurfFlags::Warp))
+					fAddWaterFace(faceIndex);
 			}
 		}
 	}
@@ -278,7 +282,7 @@ void pragma::asset::vbsp::BSPConverter::ParseEntityGeometryData(pragma::asset::E
 			}
 			else if(type == BrushType::Water)
 			{
-				fInitEntityBSPData(&bspSkybox,"water")->brushIndices.insert(brushIdx);
+				fInitEntityBSPData(&bspWater,"func_water")->brushIndices.insert(brushIdx);
 				it = bspData->brushIndices.erase(it);
 			}
 			else if(type == BrushType::Remove)
@@ -320,6 +324,8 @@ void pragma::asset::vbsp::BSPConverter::ConvertEntityData()
 		entData->keyvalues["angles"] = {std::to_string(lump.Angles.p) +" " +std::to_string(lump.Angles.y) +" " +std::to_string(lump.Angles.r)};
 		entData->keyvalues["skin"] = {std::to_string(lump.Skin)};
 		entData->keyvalues["model"] = {name};
+		entData->keyvalues["fademaxdist"] = {std::to_string(lump.FadeMaxDist)};
+		entData->keyvalues["fademindist"] = {std::to_string(lump.FadeMinDist)};
 		auto idx = entities.size() -1;
 		staticPropLeafRanges[idx] = {lump.FirstLeaf,lump.LeafCount};
 	}

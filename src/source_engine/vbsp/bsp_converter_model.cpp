@@ -344,7 +344,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 						umath::swap(v.y,v.z);
 						umath::negate(v.z);
 					}
-					auto faceNormal = Geometry::CalcFaceNormal(faceVerts.at(0),faceVerts.at(1),faceVerts.at(2));
+					auto faceNormal = uvec::calc_face_normal(faceVerts.at(0),faceVerts.at(1),faceVerts.at(2));
 					for(auto &pos : faceVerts)
 					{
 						auto vertUv = fCalculateUv(pos);
@@ -543,6 +543,8 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 		mesh->AddSubMesh(subMesh);
 	}
 	//
+	if(mesh->GetSubMeshes().size() == 0)
+		return nullptr;
 	meshGroup->AddMesh(mesh);
 
 	// Collisions

@@ -151,11 +151,12 @@ void source_engine::translate_class(
 	{
 		className = "game_player_spawn";
 	}
-	else if(ustring::compare(className,"prop_physics_multiplayer",false) == true || ustring::compare(className,"prop_static",false) == true)
+	else if(ustring::compare(className,"prop_physics_multiplayer",false) || ustring::compare(className,"prop_static",false) || ustring::compare(className,"prop_physics",false))
 	{
+		// TODO: Also see staticPropLumps for static props!
 		auto bStatic = ustring::compare(className,"prop_static",false);
 		className = "prop_physics";
-		outKeyValues.insert(std::make_pair("maxvisibledist",fGetKeyValue("fademindist")));
+		outKeyValues.insert(std::make_pair("maxvisibledist",fGetKeyValue("fademaxdist")));
 		outKeyValues.insert(std::make_pair("model",fGetKeyValue("model")));
 		outKeyValues.insert(std::make_pair("skin",fGetKeyValue("skin")));
 		outKeyValues.insert(std::make_pair("disableshadows",fGetKeyValue("disableshadows")));
@@ -167,10 +168,10 @@ void source_engine::translate_class(
 			flags |= umath::to_integral(pragma::BasePropComponent::SpawnFlags::DisableCollisions);
 		outKeyValues.insert(std::make_pair("spawnflags",std::to_string(flags)));
 	}
-	else if(ustring::compare(className,"prop_dynamic_override",false) == true)
+	else if(ustring::compare(className,"prop_dynamic_override",false) || ustring::compare(className,"prop_dynamic",false))
 	{
 		className = "prop_dynamic";
-		outKeyValues.insert(std::make_pair("maxvisibledist",fGetKeyValue("fademindist")));
+		outKeyValues.insert(std::make_pair("maxvisibledist",fGetKeyValue("fademaxdist")));
 		outKeyValues.insert(std::make_pair("model",fGetKeyValue("model")));
 		outKeyValues.insert(std::make_pair("skin",fGetKeyValue("skin")));
 		outKeyValues.insert(std::make_pair("disableshadows",fGetKeyValue("disableshadows")));
@@ -300,7 +301,10 @@ void source_engine::translate_class(
 		outKeyValues.insert(std::make_pair("origin",std::to_string(origin.x) +" " +std::to_string(origin.y) +" " +std::to_string(origin.z)));
 	if(bUseAngles)
 		outKeyValues.insert(std::make_pair("angles",std::to_string(angles.x) +" " +std::to_string(angles.y) +" " +std::to_string(angles.z)));
-
+	
+	auto itName = inKeyValues.find("targetname");
+	if(itName != inKeyValues.end() && itName->second.empty() == false)
+		outKeyValues["name"] = itName->second;
 	auto itMdl = outKeyValues.find("model");
 	if(itMdl != outKeyValues.end())
 	{

@@ -40,7 +40,7 @@ std::shared_ptr<pragma::asset::vbsp::BSPTree::Node> pragma::asset::vbsp::BSPTree
 	auto planeNormal = plane.normal;
 	umath::swap(planeNormal.y,planeNormal.z);
 	umath::negate(planeNormal.z);
-	pNode->plane = Plane{planeNormal,plane.dist};
+	pNode->plane = umath::Plane{planeNormal,plane.dist};
 
 	auto i = 0u;
 	for(auto childIdx : node.children)

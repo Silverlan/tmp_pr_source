@@ -22,6 +22,7 @@ namespace bsp {class File; struct dDisp;};
 namespace util {class BSPTree;};
 namespace vmf {class PolyMesh;};
 namespace util::fgd {struct Data;};
+namespace uimg {class ImageBuffer;};
 namespace pragma::asset {class EntityData; class WorldData;};
 namespace pragma::asset::vbsp
 {
@@ -204,6 +205,7 @@ namespace pragma::asset::vbsp
 		static void BuildDisplacement(bsp::File &bsp,NetworkState *nw,const bsp::dDisp &disp,std::vector<std::shared_ptr<vmf::PolyMesh>> &outMeshes);
 		static Vector3 BSPVertexToPragma(const Vector3 &inPos);
 		static Vector3 BSPTextureVecToPragma(const Vector3 &vec);
+		static bool ConvertLightmapToBSPLuxelData(NetworkState &nw,const std::string &mapPath,const uimg::ImageBuffer &igmBuf,uint32_t atlasWidth,uint32_t atlasHeight,std::string &outErrMsg);
 
 		std::string GetMapName() const;
 		bool StartConversion();
