@@ -308,7 +308,7 @@ void source_engine::translate_class(
 	auto itMdl = outKeyValues.find("model");
 	if(itMdl != outKeyValues.end())
 	{
-		ufile::remove_extension_from_filename(itMdl->second);
+		ufile::remove_extension_from_filename(itMdl->second,std::array<std::string,3>{"mdl","vmdl_c","vmdl"});
 		if(isSource2)
 		{
 			// Hotfix: FGD information for Source 2 entities is unreliable (I don't know if Source 2 uses FGDs),
@@ -511,7 +511,8 @@ std::vector<util::fgd::Data> source_engine::load_fgds(class NetworkState &nwStat
 	{
 		auto fgData = util::fgd::load_fgd(fgd,[&nwState,&messageLogger](const std::string &fileName) -> VFilePtr {
 			auto fname = fileName;
-			auto f = FileManager::OpenFile(fname.c_str(),"r");
+			const std::string fgdPath = "modules/mount_external/fgd/";
+			auto f = FileManager::OpenFile((fgdPath +fname).c_str(),"r");
 			if(f == nullptr)
 			{
 				if(ustring::compare(fileName,"halflife.fgd",false) == true)
@@ -520,8 +521,8 @@ std::vector<util::fgd::Data> source_engine::load_fgds(class NetworkState &nwStat
 					fname = "bin/" +fname;
 				f = FileManager::OpenFile(fname.c_str(),"r");
 			}
-			if(f == nullptr && util::port_file(&nwState,fname) == true)
-				f = FileManager::OpenFile(fname.c_str(),"r");
+			if(f == nullptr && util::port_file(&nwState,fname,fgdPath) == true)
+				f = FileManager::OpenFile((fgdPath +fname).c_str(),"r");
 			if(f != nullptr && messageLogger != nullptr)
 				messageLogger("Loading FGD '" +fileName +"'...");
 			// TODO: Import file (external resources)

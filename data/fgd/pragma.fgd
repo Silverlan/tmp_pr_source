@@ -1,0 +1,942 @@
+@mapsize(-16384, 16384)
+
+@BaseClass = Parentname
+[ 
+	parentname(target_destination) : "Parent" : : "The name of this entity's parent in the movement hierarchy. Entities with parents move with their parent."
+]
+
+@BaseClass = Targetname 
+[ 
+	targetname(target_source) : "Name" : : "The name that other entities refer to this entity by."
+	
+	// Inputs
+	input Remove(void) : "Removes this entity from the world."
+	input KillHierarchy(void) : "Removes this entity and all its children from the world."
+	input AddOutput(string) : "Adds an entity I/O connection to this entity. Format: <output name> <targetname>:<inputname>:<parameter>:<delay>:<max times to fire (-1 == infinite)>. Very dangerous, use with care."
+	input FireUser1(void) : "Causes this entity's OnUser1 output to be fired."
+	input FireUser2(void) : "Causes this entity's OnUser2 output to be fired."
+	input FireUser3(void) : "Causes this entity's OnUser3 output to be fired."
+	input FireUser4(void) : "Causes this entity's OnUser4 output to be fired."
+
+	// Outputs	
+	output OnUser1(void) : "Fired in response to FireUser1 input."
+	output OnUser2(void) : "Fired in response to FireUser2 input."
+	output OnUser3(void) : "Fired in response to FireUser3 input."
+	output OnUser4(void) : "Fired in response to FireUser4 input."
+]
+
+@BaseClass = Color 
+[ 
+	color(color255) : "Color" : "255 255 255 255" : "The text color."
+	
+	// Inputs
+	input SetColor(color255) : "Changes the entity's color."
+]
+
+@BaseClass = SurfaceMaterial
+[
+	surface_material(choices) : "Surface Material" : "generic" : "Physics material of this object." =
+	[
+		"generic" : "Generic"
+		"bouncy" : "Bouncy"
+		"carpet" : "Carpet"
+		"concrete" : "Concrete"
+		"dirst" : "Dirt"
+		"glass" : "Glass"
+		"grass" : "Grass"
+		"gravel" : "Gravel"
+		"ice" : "Ice"
+		"metal" : "Metal"
+		"rock" : "Rock"
+		"slippery" : "Slippery"
+		"snow_hard" : "Hard Snow"
+		"snow" : "Snow"
+		"soundproof" : "Soundproof"
+		"water" : "Water"
+		"wood" : "Wood"
+	]
+]
+
+@BaseClass = Angles
+[ 
+	angles(angle) : "Pitch Yaw Roll (Y Z X)" : "0 0 0" : "This entity's orientation in the world. Pitch is rotation around the Y axis, " +
+		"yaw is the rotation around the Z axis, roll is the rotation around the X axis."
+]
+
+@BaseClass = Origin
+[ 
+	origin(origin) : "Origin (X Y Z)" : : "The position of this entity's center in the world. Rotating entities typically rotate around their origin."
+]
+
+@BaseClass = Shadow
+[
+	disableshadows(choices) : "Disable Shadows" : 0 : "Used to disable dynamic shadows on this entity." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+]
+
+@BaseClass = Toggle
+[
+	spawnflags(flags) =
+	[
+		1024 : "Start On" : 1
+	]
+	// Inputs
+	input TurnOn(void) : "Set state of global to ON."
+	input TurnOff(void) : "Set state of global to OFF."
+	input Toggle(void) : "Toggles state of global between ON and OFF."
+]
+
+@BaseClass = EnableDisable
+[
+	StartDisabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// Inputs
+	input Enable(void) : "Enable this entity."
+	input Disable(void) : "Disable this entity."
+	input Toggle(void) : "Toggle between enabled and disabled."
+]
+
+@BaseClass = Skin
+[
+	skin(integer) : "Skin" : 0 : "Some models have multiple versions of their textures, called skins. Set this to a number other than 0 to use that skin instead of the default."
+]
+
+@BaseClass = Model
+[
+	model(studio) : "World Model"
+	skin(integer) : "Skin" : 0 : "Some models have multiple versions of their textures, called skins. Set this to a number other than 0 to use that skin instead of the default."
+]
+
+@BaseClass base(Toggle) = Light
+[
+	lightcolor(color255) : "Light Color" : "255 255 255 200" : "The color and brightness of the light. If the color is set to '0 0 0', or the brightness to '0', the light will effectively be disabled."
+	distance(float) : "Maximum distance" : 500 : "This is the distance that light is allowed to cast, in inches."
+	spawnflags(flags) =
+	[
+		512 : "Don't Cast Shadows" : 0
+	]
+]
+
+@BaseClass base(Targetname,Toggle) = Trigger
+[
+	// Outputs
+	output OnStartTouch(void) : "Fired when an entity starts touching this trigger. The touching entity must pass this trigger's filters to cause this output to fire."
+	output OnStartTouchAll(void) : "Fired when an entity starts touching this trigger, and no other entities are touching it. Only entities that passed this trigger's filters are considered."
+	output OnEndTouch(void) : "Fired when an entity stops touching this trigger. Only entities that passed this trigger's filters will cause this output to fire."
+	output OnEndTouchAll(void) : "Fires when an entity stops touching this trigger, and no other entities are touching it. Only entities that passed this trigger's filters are considered."
+
+	spawnflags(flags) =
+	[
+		8 : "Players" : 1
+		16 : "NPCs" : 0
+		32 : "Physics Objects" : 0
+		64 : "Everything" : 0
+	]
+]
+
+@BaseClass base(Targetname, Angles, Origin, Model, Skin) color(0 200 200) = BaseNPC
+[
+]
+
+//-------------------------------------------------------------------------
+//
+// Point Entities
+//
+//-------------------------------------------------------------------------
+
+@SolidClass base(Targetname) = worldspawn : 
+	"This is the world entity. Each map can only contain one, and it's automatically created for you."
+[
+	color(color255) : "Ambient Color" : "255 255 255 200" : "The default color of unlit areas if no environmental light is active. Set this to '0 0 0' to make unlit areas pitch black."
+]
+
+@PointClass base(Origin,Targetname,Angles) = point_target : 
+	""
+[
+]
+
+@BaseClass base(Origin,Targetname,Toggle) = Constraint
+[
+	source(target_destination) : "Source Entity" : : ""
+	
+	target(target_destination) : "Target Entity" : : ""
+	
+	spawnflags(flags) =
+	[
+		1024 : "Start Inactive" : 0
+		2048 : "Disable Collisions" : 1
+	]
+]
+
+@PointClass base(Constraint) studio("models/editor/axis_helper.mdl") = point_constraint_fixed : 
+	""
+[
+]
+
+@PointClass base(Constraint,Angles) studio("models/editor/axis_helper.mdl") = point_constraint_ballsocket : 
+	""
+[
+]
+
+@PointClass base(Constraint,Angles) studio("models/editor/axis_helper.mdl") = point_constraint_conetwist : 
+	""
+[
+	swingspan1(float) : "Pitch Limit Angle" : 0 : ""
+	swingspan2(float) : "Yaw Limit Angle" : 0 : " "
+	twistspan(float) : "Twist Limit Angle" : 0 : " "
+	softness(float) : "Softness" : "1" : ""
+	biasfactor(float) : "Bias Factor" : "0.3" : ""
+	relaxationfactor(float) : "Relaxation Factor" : "1" : ""
+]
+
+@PointClass base(Constraint,Angles) studio("models/editor/axis_helper.mdl") = point_constraint_dof : 
+	""
+[
+	limit_lin_lower(vector) : "Lower Linear Limit" : "1 1 1" : ""
+	limit_lin_upper(vector) : "Upper Linear Limit" : "-1 -1 -1" : ""
+	limit_ang_lower(vector) : "Lower Angular Limit" : "1 1 1" : ""
+	limit_ang_upper(vector) : "Upper Angular Limit" : "-1 -1 -1" : ""
+]
+
+@PointClass base(Constraint) studio("models/editor/axis_helper.mdl") = point_constraint_slider : 
+	""
+[
+	target_origin(origin) : "Target Origin (X Y Z)" : : ""
+
+	limit_low(float) : "Lower Linear Distance" : 0 : "Minimum linear movement distance on the axis. Use -1 for the high limit to apply no limitation."
+	limit_high(float) : "Higher Linear Distance" : -1 : " Maximum linear movement distance on the axis. Use -1 to apply no limitation."
+]
+
+@PointClass base(Constraint) studio("models/editor/axis_helper.mdl") = point_constraint_hinge : 
+	""
+[
+	target_origin(origin) : "Target Origin (X Y Z)" : : ""
+
+	limit_low(float) : "Lower Limit Angle" : 0 : "Minimum rotation angle. Use -1 for the high limit to allow full rotation."
+	limit_high(float) : "Higher Limit Angle" : -1 : " Maximum rotation angle. Use -1 to allow full rotation."
+	softness(float) : "Softness" : "0.9" : ""
+	biasfactor(float) : "Bias Factor" : "0.3" : ""
+	relaxationfactor(float) : "Relaxation Factor" : "1" : ""
+]
+
+@PointClass base(Origin,Targetname,Angles) = point_path_node : 
+	""
+[
+	next_node(target_destination) : "Next Path Node" : : ""
+]
+
+@PointClass base(Origin,Targetname,Angles,Toggle) studioprop("models/editor/camera.mdl") = point_rendertarget : 
+	""
+[
+	material(material) : "Material" : "" : ""
+	fov(float) : "FOV" : "75"
+	refreshrate(float) : "Refresh Rate" : "0" : "Time in seconds between render updates"
+	renderwidth(float) : "Render Width" : "1024" : "0 = Use view camera's width"
+	renderheight(float) : "Render Height" : "768" : "0 = Use view camera's height"
+	nearz(float) : "Near Plane" : "0" : "0 = Use view camera's near plane"
+	farz(float) : "Far Plane" : "0" : "0 = Use view camera's far plane"
+	depth(integer) : "Depth" : 1 : "How many iterations to go through if the camera is pointed at the screen. A value of 0 means that nothing will be rendered."
+	// Outputs
+	output OnActivate(void) : ""
+	output OnDeactivate(void) : ""
+]
+
+@PointClass sphere() iconsprite("editor/env_shake.vmt") base(Targetname) = env_quake :
+	""
+[
+	spawnflags(flags) =
+	[
+		1: "GlobalShake" : 0
+		//2: "Disrupt player control" : 0 // doesn't work
+		4: "In Air" : 1		// shakes objects even if they are not onground
+		8: "Physics" : 1	// shakes physically as well as the camera
+		32: "DON'T shake view (for shaking ropes or physics only)" : 0
+		4096 : "Remove on complete" : 1
+	]
+
+	amplitude(float) : "Amplitude" : "50" : "The amount of noise in the screen shake."
+	radius(float) : "Radius" : "256" : "The radius around this entity in which to affect objects."
+	duration(float) : "Duration (seconds)" : "5" : "The length of time the effect should last."
+	frequency(float) : "Frequency" : "50" : "The frequency used to apply the screen shake."
+	fadein(float) : "Fade-In Duration" : "0" : "The amount of time it takes until the quake has reached full potential."
+	fadeout(float) : "Fade-Out Duration" : "2" : "The amount of time it takes until the quake has settled."
+
+	// Inputs
+	input SetAmplitude(float) : "Set the amplitude"
+	input SetFrequency(float) : "Set the frequency"
+	input SetDuration(float) : "Set the duration"
+	input SetFadeInDuration(float) : "Set the fade-in duration"
+	input SetFadeOutDuration(float) : "Set the fade-out duration"
+	input StartShake(void) : "Start the shake."
+	input StopShake(void) : "Stop the shake."
+]
+
+@PointClass base(Origin,Targetname,Angles,Toggle) studioprop("models/editor/camera.mdl") = env_camera : 
+	""
+[
+	// Outputs
+	output OnActivate(void) : ""
+	output OnDeactivate(void) : ""
+]
+
+@PointClass base(Origin,Targetname,Angles) studio("models/editor/playerstart.mdl") = game_player_spawn :
+	""
+[
+	team(integer) : "Team" : 0 : "If a team-based gamemode is used with this map, only players of the team with this id will be able to spawn here."
+]
+
+@PointClass base(Origin,Targetname,Angles,Light,Parentname) lightprop("models/editor/spot.mdl") lightcone() sphere(_fifty_percent_distance) sphere(_zero_percent_distance) = env_light_spot :
+	""
+[
+	outercutoff(float) : "Outer Cutoff Angle" : 45 : ""
+	innercutoff(float) : "Inner Cutoff Angle" : 35 : ""
+	falloff_exponent(float) : "Falloff Exponent" : 1 : ""
+]
+
+@PointClass base(Origin,Targetname,Light,Parentname) iconsprite("editor/light.vmt") sphere(distance) = env_light_point :
+	""
+[
+	falloff_exponent(float) : "Falloff Exponent" : 1 : ""
+]
+
+@PointClass base(Origin,Targetname,Angles,Light) iconsprite("editor/light_env.vmt") = env_light_environment :
+	""
+[
+	max_exposure(float) : "Max HDR Exposure" : 8 : "Expore will be clamped at this value."
+	color_ambient(color255) : "Ambient Color" : "255 255 255 200" : "The default color of unlit areas. Set this to '0 0 0' to make unlit areas pitch black."
+]
+
+@PointClass base(Origin,Targetname,Toggle) studio("models/editor/cone_helper.mdl") = env_particle_system :
+	""
+[
+	particle_file(string) : "Particle File" : "" : ""
+	particle(string) : "Particle Effect" : "" : ""
+	spawnflags(flags) =
+	[
+		2048 : "Continuous" : 0
+		4096 : "Remove on complete" : 1
+	]
+
+	// Inputs
+	input SetContinuous(bool) : "Marks the particle effect as continuous/not continuous."
+]
+
+@BaseClass = BaseProp
+[
+	maxvisibledist(float) : "Maximum Visible Distance" : 8000 : "Maximum distance at which the prop is visible."
+	scale(float) : "Scale" : "1.0" : "The prop's scale."
+]
+
+@PointClass base(Origin,Targetname,Model,Skin,Angles,Shadow,BaseProp) studioprop() sphere(maxvisibledist) = prop_physics :
+	""
+[
+	mass(float) : "Mass" : "" : "Custom prop mass. Leave empty to use model's default mass!"
+	spawnflags(flags) =
+	[
+		2048 : "Disable Collisions" : 0
+		4096 : "Static" : 0
+	]
+]
+
+@PointClass base(Origin,Targetname,Model,Skin,Angles,Shadow,BaseProp) studioprop() sphere(maxvisibledist) = prop_dynamic :
+	""
+[
+]
+
+@PointClass base(Origin,Targetname,Angles) studioprop() = vhc_viperscout :
+	""
+[
+	doors_closed(choices) : "Doors Closed?" : 0 : "If set to 1, the vehicle will spawn with closed doors. It will still be enterable, but first-person camera mode will be disabled." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	turret_type(choices) : "Turret Type" : 0 : "Type of the mounted turret on top of the vehicle." =
+	[
+		0 : "None"
+		1 : "Single-Barrel"
+		2 : "Double-Barrel"
+	]
+]
+
+@BaseClass = OutlineColor 
+[ 
+	outline_color(color255) : "Outline Color" : "0 0 0 0" : "The outline color."
+	
+	// Inputs
+	input SetOutlineColor(color255) : "Changes the entity's outline color."
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,Parentname) iconsprite("editor/game_text.vmt") = debug_text :
+	""
+[
+	text(string) : "Debug Text" : "" : "The text that should be displayed."
+	size(float) : "Size" : "0.3" : "The size of the text."
+
+	// Inputs
+	input SetText(string) : "Changes the text."
+	input SetSize(float) : "Changes the text size."
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,Parentname) iconsprite("editor/info_target.vmt") = debug_point :
+	""
+[]
+
+@PointClass base(Origin,Targetname,Toggle,Color,Parentname) iconsprite("editor/gizmotranslatehandle.vmt") line(color,targetname,targetname,targetname,end_target) = debug_line :
+	""
+[
+	end_target(target_destination) : "Line Target" : : ""
+	target_origin(origin) : "Target Origin (X Y Z)" : : "Only used if no end target was specified."
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,OutlineColor,Parentname) iconsprite("editor/gizmoscalehandle.vmt") = debug_box :
+	""
+[
+	min_bounds(vector) : "Minimum Bounds" : : ""
+	max_bounds(vector) : "Maximum Bounds" : : ""
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,OutlineColor,Parentname) iconsprite("editor/gizmorotatehandle.vmt") sphere(radius) = debug_sphere :
+	""
+[
+	radius(float) : "Radius" : "256" : "The radius of the sphere."
+	recursion_level(integer) : "Recursion Level" : 1 : "The recursion level for creating the sphere (i.e. smoothness). Don't set this higher than 6, as the complexity increases exponentially."
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,OutlineColor,Parentname,Angles) iconsprite("editor/gizmotranslatehandle.vmt") sphere(radius) sphere(start_radius) = debug_cone :
+	""
+[
+	radius(float) : "Radius" : "256" : "The radius of the cone."
+	start_radius(float) : "Start Radius" : "0" : "The start radius of the (truncated) cone. The cone will not be truncated if this radius is 0."
+	cone_angle(float) : "Cone Angle" : "0" : "The angle of the cone."
+	segment_count(integer) : "Segment Count" : 12 : "Number of segments for the cylinder. More segments means a smoother cylinder."
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,OutlineColor,Parentname) iconsprite("editor/info_landmark.vmt") sphere(radius) = debug_cylinder :
+	""
+[
+	radius(float) : "Radius" : "256" : "The radius of the cylinder."
+	length(float) : "Length" : "0" : "The length of the cylinder."
+	segment_count(integer) : "Segment Count" : 12 : "Number of segments for the cylinder. More segments means a smoother cylinder."
+]
+
+@PointClass base(Origin,Targetname,Toggle,Color,Parentname,Angles) iconsprite("editor/gizmoscalehandle.vmt") = debug_plane :
+	""
+[]
+
+@PointClass base(Origin,Targetname,Angles) iconsprite("editor/ambient_generic.vmt") sphere(max_dist) = env_sound :
+	""
+[
+	sound(sound) : "Sound Name" : "" : ""
+	pitch(float) : "Pitch" : "1" : ""
+	gain(float) : "Gain" : "1" : ""
+	rolloff(float) : "Rolloff Factor" : "1" : ""
+	min_gain(float) : "Min Gain" : "0" : ""
+	max_gain(float) : "Max Gain" : "1" : ""
+	inner_cone(float) : "Inner Cone Angle" : "360" : ""
+	outer_cone(float) : "Outer Cone Angle" : "360" : ""
+	offset(float) : "Starting Offset" : "0" : ""
+	reference_dist(float) : "Reference Distance" : "1" : ""
+	max_dist(float) : "Maximum Distance" : "1024" : ""
+	spawnflags(flags) =
+	[
+		8: "Play everywhere" : 0
+		16: "Play on spawn": 0
+		32: "Is looped": 0
+		64 : "Type: Effect" : 0
+		128 : "Type: Music" : 0
+		256 : "Type: Voice" : 0
+		512 : "Type: Weapon" : 0
+		1024 : "Type: NPC" : 0
+		2048 : "Type: Player" : 0
+		4096 : "Type: Vehicle" : 0
+		8192 : "Type: Physics" : 0
+		16384 : "Type: Environment" : 0
+		32768 : "Type: GUI" : 0
+	]
+	
+	// Inputs
+	input Play(void) : "Starts or resumes the sound. If it was already playing, it will restart from the beginning."
+	input Stop(void) : "Instantly stops the sound."
+	input Toggle(void) : "Toggles the sound."
+	input Rewind(void) : "Rewinds the sound back to the beginning. Does not automatically play the sound if it was paused or stopped!"
+	input FadeIn(float) : "Fades the sound in over the specified duration."
+	input FadeOut(float) : "Fades the sound out over the specified duration."
+	input Pause(void) : "Pauses the sound, but doesn't stop it."
+	input SetPitch(float) : "Changes the sound's pitch to the specified value."
+	input SetLooping(bool) : "Changes whether the sound is supposed to loop or not."
+	input SetGain(float) : "Changes the sound's volume."
+	input SetRelativeToListener(bool) : "Changes whether the sound should be relative to the listener."
+	input SetOffset(float) : "Changes the sound's position (1 = end of sound, 0 = beginning)"
+	input SetSecOffset(float) : "Changes the sound's position by the specified time in seconds."
+	input SetRolloffFactor(float) : "Changes the sound's rolloff factor to the specified value."
+	input SetMaxDistance(float) : "The sound will not decrease in volume after this distance."
+	input SetMinGain(float) : "Changes the sound's minimum volume."
+	input SetMaxGain(float) : "Changes the sound's maximum volume."
+	input SetConeInnerAngle(float) : "Changes the sound's inner cone angle."
+	input SetConeOuterAngle(float) : "Changes the sound's outer cone angle."
+	
+	// Outputs
+	output OnPlay(void) : "Fired when the sound has started playing."
+	output OnStop(void) : "Fired when the sound is being stopped."
+	output OnPause(void) : "Fired when the sound is being paused."
+	// output OnRepeat(void) : "Fired if the sound is set to loop and is about to repeat."
+]
+
+@BaseClass base(Origin,Targetname,Toggle) = BaseDSP
+[
+	inner_radius(float) : "Inner Radius" : "250" : ""
+	outer_radius(float) : "Outer Radius" : "500" : ""
+	intensity(float) : "Intensity" : "1" : "Intensity of the effect."
+	spawnflags(flags) =
+	[
+		4 : "Affect Relative" : 0
+		65536 : "Apply Globally (Ignore radius)" : 0
+		8 : "Effects" : 0
+		16 : "Music" : 0
+		32 : "Voices" : 0
+		64 : "Weapons" : 0
+		128 : "NPCs" : 0
+		256 : "Players" : 0
+		512 : "Vehicles" : 0
+		2048 : "Physics" : 0
+		4096 : "Environment" : 0
+		8192 : "GUI" : 0
+		16384 : "World" : 0
+		32768 : "All" : 1
+	]
+]
+
+@PointClass base(Origin,Toggle) iconsprite("editor/fog_controller.vmt") = env_fog_controller :
+	""
+[
+	fogcolor(color255) : "Fog Color" : "255 255 255"
+	fogstart(float) : "Fog Start" : "500.0"
+	fogend(float) : "Fog End" : "2000.0"
+	fogtype(choices) : "Fog Type" : 0 : "Linear fog will blend the fog between the start distance to the end distance, up to the specified density. Exponential fog looks more realistic, but is more expensive to render and doesn't use the start and end distance. Exponential 2 is similar, but starts off less dense and gets more dense more quickly." =
+	[
+		0 : "Linear"
+		1 : "Exponential"
+		2 : "Exponential 2"
+	]
+	fogmaxdensity(float) : "Fog Max Density [0..1]" : "1" : "If using exponential fog, use values near 0.005 to prevent the fog from getting too thick."
+	
+	// Inputs
+	input SetStartDist(float) : "Set the fog start distance."
+	input SetEndDist(float) : "Set the fog end distance."
+	input SetMaxDensity(float) : "Set the fog's max density."
+	input SetFogColor(color255) : "Set the fog's color."
+]
+
+
+@PointClass base(Origin) iconsprite("editor/ambient_generic.vmt") sphere(radius) = env_sound_probe_point :
+	""
+[
+	wv_hint_clientsideonly(choices) : "Pragma Hint" : 1 : "Don't change this!" =
+	[
+		1 : "Yes"
+	]
+	wv_hint_classoverride(string) : "Pragma Hint" : "env_sound_probe" : "Don't change this!"
+	radius(float) : "Radius" : "512" : "Radius of the sound probe sphere."
+]
+@SolidClass base(Origin) = env_sound_probe :
+	""
+[
+	wv_hint_clientsideonly(choices) : "Pragma Hint" : 1 : "Don't change this!" =
+	[
+		1 : "Yes"
+	]
+	spacing(float) : "Spacing" : "512" : "Spacing between probes along the horizontal plane."
+	height_above_floor(float) : "Height Above Floor" : "50" : "Height of the probes above the closest floor or terrain surfaces."
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp :
+	""
+[
+	dsp(string) : "DSP Name" : "" : ""
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp_eaxreverb :
+	""
+[
+	density(float) : "Density" : "1" : "Reverb Modal Density controls the coloration of the late reverb. Lowering the value adds more coloration to the late reverb."
+	diffusion(float) : "Diffusion" : "1" : "The Reverb Diffusion property controls the echo density in the reverberation decay. It's set by default to 1.0, which provides the highest density.Reducing diffusion gives the reverberation a more 'grainy' character that is especially noticeable with percussive sound sources. If you set a diffusion value of 0.0, the later reverberation sounds like a succession of distinct echoes."
+	gain(float) : "Gain" : "0.32" : "The Reverb Gain property is the master volume control for the reflected sound (both early reflections and reverberation) that the reverb effect adds to all sound sources. It sets the maximum amount of reflections and reverberation added to the final sound mix. The value of the Reverb Gain property ranges from 1.0 (0db) (the maximum amount) to 0.0 (-100db) (no reflected sound at all)."
+	gain_hf(float) : "Gain HF" : "0.89" : "The Reverb Gain HF property further tweaks reflected sound by attenuating it at high frequencies. It controls a low-pass filter that applies globally to the reflected sound of all sound sources feeding the particular instance of the reverb effect. The value of the Reverb Gain HF property ranges from 1.0 (0db) (no filter) to 0.0 (-100db) (virtually no reflected sound). HF Reference sets the frequency at which the value of this property is measured. "
+	gain_lf(float) : "Gain LF" : "1" : "The Reverb Gain LF property further tweaks reflected sound by attenuating it at low frequencies. It controls a high-pass filter that applies globally to the reflected sound of all sound sources feeding the particular instance of the reverb effect. The value of the Reverb Gain LF property ranges from 1.0 (0db) (no filter) to 0.0 (-100db) (virtually no reflected sound). LF Reference sets the frequency at which the value of this property is measured."
+	decay(float) : "Decay Time" : "1.49" : "The Decay Time property sets the reverberation decay time. It ranges from 0.1 (typically a small room with very dead surfaces) to 20.0 (typically a large room with very live surfaces)."
+	decay_hf(float) : "Gain HF" : "0.83" : "The Decay HF Ratio property adjusts the spectral quality of the Decay Time parameter. It is the ratio of high-frequency decay time relative to the time set by Decay Time. The Decay HF Ratio value 1.0 is neutral: the decay time is equal for all frequencies. As Decay HF Ratio increases above 1.0, the high-frequency decay time increases so it's longer than the decay time at mid frequencies. You hear a more brilliant reverberation with a longer decay at high frequencies. As 97/144 the Decay HF Ratio value decreases below 1.0, the high-frequency decay time decreases so it's shorter than the decay time of the mid frequencies. You hear a more natural reverberation. "
+	decay_lf(float) : "Gain LF" : "1" : "The Decay LF Ratio property adjusts the spectral quality of the Decay Time parameter. It is the ratio of low-frequency decay time relative to the time set by Decay Time. The Decay LF Ratio value 1.0 is neutral: the decay time is equal for all frequencies. As Decay LF Ratio increases above 1.0, the low-frequency decay time increases so it's longer than the decay time at mid frequencies. You hear a more booming reverberation with a longer decay at low frequencies. As the Decay LF Ratio value decreases below 1.0, the low-frequency decay time decreases so it's shorter than the decay time of the mid frequencies. You hear a more tinny reverberation. "
+	reflections_gain(float) : "Reflections Gain" : "0.05" : "The Reflections Gain property controls the overall amount of initial reflections relative to the Gain property. (The Gain property sets the overall amount of reflected sound: both initial reflections and later reverberation.) The value of Reflections Gain ranges from a maximum of 3.16 (+10 dB) to a minimum of 0.0 (-100 dB) (no initial reflections at all), and is corrected by the value of the Gain property. The Reflections Gain property does not affect the subsequent reverberation decay. You can increase the amount of initial reflections to simulate a more narrow space or closer walls, especially effective if you associate the initial reflections increase with a reduction in reflections delays by lowering the value of the Reflection Delay property. To simulate open or semi-open environments, you can maintain the amount of early reflections while reducing the value of the Late Reverb Gain property, which controls later reflections. "
+	reflections_delay(float) : "Reflections Delay" : "0.007" : "The Reflections Delay property is the amount of delay between the arrival time of the direct path from the source to the first reflection from the source. It ranges from 0 to 300 milliseconds. You can reduce or increase Reflections Delay to simulate closer or more distant reflective surfaces—and therefore control the perceived size of the room. "
+	reflections_pan(vector) : "Reflections Pan" : "0 0 0" : "The Reflections Pan property is a 3D vector that controls the spatial distribution of the cluster of early reflections. The direction of this vector controls the global direction of the reflections, while its magnitude controls how focused the reflections are towards this direction. It is important to note that the direction of the vector is interpreted in the coordinate system of the user, without taking into account the orientation of the virtual listener. For instance, assuming a four-point loudspeaker playback system, setting Reflections Pan to (0., 0., 0.7) means that the reflections are panned to the front speaker pair, whereas as setting of (0., 0., −0.7) pans the reflections towards the rear speakers. These vectors follow the a left-handed co-ordinate system, unlike OpenAL uses a right-handed co-ordinate system. If the magnitude of Reflections Pan is zero (the default setting), the early reflections come evenly from all directions. As the magnitude increases, the reflections become more focused in the direction pointed to by the vector. A magnitude of 1.0 would represent the extreme case, where all reflections come from a single direction. "
+	late_gain(float) : "Late Gain" : "1.26" : "The Late Reverb Gain property controls the overall amount of later reverberation relative to the Gain property. (The Gain property sets the overall amount of both initial reflections and later reverberation.) The value of Late Reverb Gain ranges from a maximum of 10.0 (+20 dB) to a minimum of 0.0 (-100 dB) (no late reverberation at all). Note that Late Reverb Gain and Decay Time are independent properties: If you adjust Decay Time without changing Late Reverb Gain, the total intensity (the averaged square of the amplitude) of the late reverberation remains constant. "
+	late_delay(float) : "Late Delay" : "0.011" : "The Late Reverb Delay property defines the begin time of the late reverberation relative to the time of the initial reflection (the first of the early reflections). It ranges from 0 to 100 milliseconds. Reducing or increasing Late Reverb Delay is useful for simulating a smaller or larger room. "
+	late_pan(vector) : "Late Pan" : "0 0 0" : "The Late Reverb Pan property is a 3D vector that controls the spatial distribution of the late reverb. The direction of this vector controls the global direction of the reverb, while its magnitude controls how focused the reverb are towards this direction."
+	echo_time(float) : "Echo Time" : "0.25" : "Echo Depth introduces a cyclic echo in the reverberation decay, which will be noticeable with transient or percussive sounds. A larger value of Echo Depth will make this effect more prominent. Echo Time controls the rate at which the cyclic echo repeats itself along the reverberation decay. For example, the default setting for Echo Time is 250 ms. causing the echo to occur 4 times per second. Therefore, if you were to clap your hands in this type of environment, you will hear four repetitions of clap per second."
+	echo_depth(float) : "Echo Depth" : "0" : "Together with Reverb Diffusion, Echo Depth will control how long the echo effect will persist along the reverberation decay. In a more diffuse environment, echoes will wash out more quickly after the direct sound. In an environment that is less diffuse, you will be able to hear a larger number of repetitions of the echo, which will wash out later in the reverberation decay. If Diffusion is set to 0.0 and Echo Depth is set to 1.0, the echo will persist distinctly until the end of the reverberation decay."
+	mod_time(float) : "Modulation Time" : "0.25" : "Using these two properties, you can create a pitch modulation in the reverberant sound. This will be most noticeable applied to sources that have tonal color or pitch. You can use this to make some trippy effects! Modulation Time controls the speed of the vibrato (rate of periodic changes in pitch)."
+	mod_depth(float) : "Modulation Depth" : "0" : "Modulation Depth controls the amount of pitch change. Low values of Diffusion will contribute to reinforcing the perceived effect by reducing the mixing of overlapping reflections in the reverberation decay."
+	reference_hf(float) : "HF Reference" : "5000" : "The properties HF Reference and LF Reference determine respectively the frequencies at which the high-frequency effects and the low-frequency effects created by EAX Reverb properties are measured, for example Decay HF Ratio and Decay LF Ratio. Note that it is necessary to maintain a factor of at least 10 between these two reference frequencies so that low frequency and high frequency properties can be accurately controlled and will produce independent effects. In other words, the LF Reference value should be less than 1/10 of the HF Reference value."
+	reference_lf(float) : "LF Reference" : "250" : "The properties HF Reference and LF Reference determine respectively the frequencies at which the high-frequency effects and the low-frequency effects created by EAX Reverb properties are measured, for example Decay HF Ratio and Decay LF Ratio. Note that it is necessary to maintain a factor of at least 10 between these two reference frequencies so that low frequency and high frequency properties can be accurately controlled and will produce independent effects. In other words, the LF Reference value should be less than 1/10 of the HF Reference value."
+	room_rolloff(float) : "Room Rolloff Factor" : "0" : "The Room Rolloff Factor property is one of two methods available to attenuate the reflected sound (containing both reflections and reverberation) according to source-listener distance. It's defined the same way as OpenAL's Rolloff Factor, but operates on reverb sound instead of direct-path sound. Setting the Room Rolloff Factor value to 1.0 specifies that the reflected sound will decay by 6 dB every time the distance doubles. Any value other than 1.0 is equivalent to a scaling factor applied to the quantity specified by ((Source listener distance) - (Reference Distance)). Reference Distance is an OpenAL source parameter that specifies the inner border for distance rolloff effects: if the source comes closer to the listener than the reference distance, the direct-path sound isn't increased as the source comes closer to the listener, and neither is the reflected sound. The default value of Room Rolloff Factor is 0.0 because, by default, the Effects Extension reverb effect naturally manages the reflected sound level automatically for each sound source to simulate the natural rolloff of reflected sound vs. distance in typical rooms. (Note that this isn't the case if the source property flag AL_AUXILIARY_SEND_FILTER_GAIN_AUTO is set to AL_FALSE) You can use Room Rolloff Factor as an option to automatic control so you can exaggerate or replace the default automatically-controlled rolloff. "
+	air_absorp_gain_hf(float) : "Air Absorption Gain HF" : "0.994" : "The Air Absorption Gain HF property controls the distance-dependent attenuation at high frequencies caused by the propagation medium. It applies to reflected sound only. You can use Air Absorption Gain HF to simulate sound transmission through foggy air, dry air, smoky atmosphere, and so on. The default value is 0.994 (-0.05 dB) per meter, which roughly corresponds to typical condition of atmospheric humidity, temperature, and so on. Lowering the value simulates a more absorbent medium (more humidity in the air, for example); raising the value simulates a less absorbent medium (dry desert air, for example)."
+	decay_hf_limit(choices) : "Should use Decay HF Limit" : 0 : "When this flag is set, the high-frequency decay time automatically stays below a limit value that's derived from the setting of the property Air Absorption Gain HF. This limit applies regardless of the setting of the property Decay HF Ratio, and the limit doesn't affect the value of Decay HF Ratio. This limit, when on, maintains a natural sounding reverberation decay by allowing you to increase the value of Decay Time without the risk of getting an unnaturally long decay time at high frequencies. If this flag is set to AL_FALSE, high-frequency decay time isn't automatically limited." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp_chorus :
+	""
+[
+	waveform(choices) : "Waveform" : 1 : "This property sets the waveform shape of the LFO that controls the delay time of the delayed signals." =
+	[
+		0 : "Sin"
+		1 : "Triangle"
+	]
+	phase(integer) : "Chorus Phase" : 90 : "This property controls the phase difference between the left and right LFO's. At zero degrees the two LFOs are synchronized. Use this parameter to create the illusion of an expanded stereo field of the output signal."
+	rate(float) : "Rate" : "1.1" : "This property sets the modulation rate of the LFO that controls the delay time of the delayed signals."
+	depth(float) : "Depth" : "0.1" : "This property controls the amount by which the delay time is modulated by the LFO."
+	feedback(float) : "Feedback" : "0.25" : "This property controls the amount of processed signal that is fed back to the input of the chorus effect. Negative values will reverse the phase of the feedback signal. At full magnitude the identical sample will repeat endlessly. At lower magnitudes the sample will repeat and fade out over time. Use this parameter to create a 'cascading' chorus effect."
+	delay(float) : "Delay" : "0.016" : "This property controls the average amount of time the sample is delayed before it is played back, and with feedback, the amount of time between iterations of the sample. Larger values lower the pitch. Smaller values make the chorus sound like a flanger, but with different frequency characteristics."
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp_distortion :
+	""
+[
+	edge(float) : "Edge" : "0.2" : "This property controls the shape of the distortion. The higher the value for Edge, the 'dirtier' and 'fuzzier' the effect."
+	gain(float) : "Gain" : "0.05" : "This property allows you to attenuate the distorted sound."
+	lowpass_cutoff(float) : "Low Pass Cutoff" : "8000" : "Input signal can have a low pass filter applied, to limit the amount of high frequency signal feeding into the distortion effect."
+	eqcenter(float) : "EQ Center" : "3600" : "This property controls the frequency at which the post-distortion attenuation (Distortion Gain) is active."
+	eqbandwith(float) : "EQ Bandwidth" : "3600" : "This property controls the bandwidth of the post-distortion attenuation."
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp_echo :
+	""
+[
+	delay(float) : "Delay" : "0.1" : "This property controls the delay between the original sound and the first 'tap', or echo instance. Subsequently, the value for Echo Delay is used to determine the time delay between each 'second tap' and the next 'first tap'."
+	lrdelay(float) : "LR Delay" : "0.1" : "This property controls the delay between the first 'tap' and the second 'tap'. Subsequently, the value for Echo LR Delay is used to determine the time delay between each 'first tap' and the next 'second tap'."
+	damping(float) : "Damping" : "0.5" : "This property controls the amount of high frequency damping applied to each echo. As the sound is subsequently fed back for further echoes, damping results in an echo which progressively gets softer in tone as well as intensity."
+	feedback(float) : "Feedback" : "0.5" : "This property controls the amount of feedback the output signal fed back into the input. Use this parameter to create 'cascading' echoes. At full magnitude, the identical sample will repeat endlessly. Below full magnitude, the sample will repeat and fade."
+	spread(float) : "Spread" : "-1" : "This property controls how hard panned the individual echoes are. With a value of 1.0, the first 'tap' will be panned hard left, and the second tap hard right. A value of -1.0 gives the opposite result. Settings nearer to 0.0 result in less emphasized panning."
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp_flanger :
+	""
+[
+	waveform(choices) : "Waveform" : 1 : "Selects the shape of the LFO waveform that controls the amount of the delay of the sampled signal. Zero is a sinusoid and one is a triangle." =
+	[
+		0 : "Sin"
+		1 : "Triangle"
+	]
+	phase(integer) : "Chorus Phase" : 90 : "This changes the phase difference between the left and right LFO's. At zero degrees the two LFOs are synchronized."
+	rate(float) : "Rate" : "1.1" : "The number of times per second the LFO controlling the amount of delay repeats. Higher values increase the pitch modulation."
+	depth(float) : "Depth" : "0.1" : "The ratio by which the delay time is modulated by the LFO. Use this parameter to increase the pitch modulation."
+	feedback(float) : "Feedback" : "0.25" : "This is the amount of the output signal level fed back into the effect's input. A negative value will reverse the phase of the feedback signal. Use this parameter to create an 'intense metallic' effect. At full magnitude, the identical sample will repeat endlessly. At less than full magnitude, the sample will repeat and fade out over time."
+	delay(float) : "Delay" : "0.016" : "The average amount of time the sample is delayed before it is played back; with feedback, the amount of time between iterations of the sample."
+]
+
+@PointClass base(Origin,BaseDSP) iconsprite("editor/ambient_generic.vmt") sphere(inner_radius) sphere(outer_radius) = env_sound_dsp_equalizer :
+	""
+[
+	low_gain(float) : "Low Gain" : "1" : "This property controls amount of cut or boost on the low frequency range."
+	low_cutoff(float) : "Low Cutoff" : "200" : "This property controls the low frequency below which signal will be cut off."
+	mid1_gain(float) : "Mid1 Gain" : "1" : "This property allows you to cut / boost signal on the 'mid1' range."
+	mid1_center(float) : "Mid1 Center" : "500" : "This property sets the center frequency for the 'mid1' range."
+	mid1_width(float) : "Mid1 Width" : "1" : "This property controls the width of the 'mid1' range."
+	mid2_gain(float) : "Mid2 Gain" : "1" : "This property allows you to cut / boost signal on the 'mid2' range."
+	mid2_center(float) : "Mid2 Center" : "3000" : "This property sets the center frequency for the 'mid2' range."
+	mid2_width(float) : "Mid2 Width" : "1" : "This property controls the width of the 'mid2' range."
+	high_gain(float) : "High Gain" : "1" : "This property allows you to cut / boost the signal at high frequencies."
+	high_cutoff(float) : "High Cutoff" : "6000" : "This property controls the high frequency above which signal will be cut off."
+]
+
+@PointClass base(Origin,Targetname) iconsprite("editor/logic_timer.vmt") sphere(inner_radius) sphere(outer_radius) = env_timescale :
+	""
+[
+	timescale(float) : "Timescale" : "" : ""
+	inner_radius(float) : "Inner Radius" : "" : ""
+	outer_radius(float) : "Outer Radius" : "" : ""
+]
+
+@PointClass base(Origin,Targetname) sphere() iconsprite("editor/env_soundscape.vmt") line(255 255 255, targetname, position0) line(255 255 255, targetname, position1) line(255 255 255, targetname, position2) line(255 255 255, targetname, position3) line(255 255 255, targetname, position4) line(255 255 255, targetname, position5) line(255 255 255, targetname, position6) line(255 255 255, targetname, position7) = env_soundscape : 
+	"An entity to control sound in an area. The active soundscape at any time is the last one that had line-of-sight to the player, and was within the radius."
+[
+	radius(integer) : "Radius" : 128 : "If set to -1, then the player can hear the soundscape as long as he can see it (regardless of distance to it)."
+	soundscape(string) : "Soundscape" : "" : "The name of the soundscape to use. Corresponds to an entry in the soundscapes*.txt file in the hl2\scripts directory."
+	position0(target_destination) : "Sound Position 0" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position1(target_destination) : "Sound Position 1" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position2(target_destination) : "Sound Position 2" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position3(target_destination) : "Sound Position 3" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position4(target_destination) : "Sound Position 4" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position5(target_destination) : "Sound Position 5" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position6(target_destination) : "Sound Position 6" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	position7(target_destination) : "Sound Position 7" : "" : "A sound position that will be referenced inside the soundscape text file. Usually used to position a set of sounds within the world."
+	
+	// Inputs
+	input Enable(void) : "Enable the soundscape."
+	input Disabled(void) : "Disable the soundscape."
+	input ToggleEnabled(void) : "Toggle the soundscape enabled state."
+
+	// Outputs
+	output OnPlay(void) : "Fired when this soundscape becomes the active one."
+]
+
+@PointClass base(Targetname, EnableDisable) iconsprite("editor/logic_relay.vmt") = logic_relay :
+	"A message forwarder. Fires an OnTrigger output when triggered, and " +
+	"can be disabled to prevent forwarding outputs.\n\n" +
+	"Useful as an intermediary between one entity and another for turning " +
+	"on or off an I/O connection, or as a container for holding a set of " +
+	"outputs that can be triggered from multiple places."
+[
+	spawnflags(flags) =
+	[
+		1: "Only trigger once" : 0
+	]
+
+	// Inputs
+	input Trigger(void) : "Trigger the relay, causing its OnTrigger output to fire if it is enabled."
+	//input CancelPending(void) : "Cancel any events fired by this relay that are currently pending in the I/O event queue."
+	
+	// Outputs
+	//output OnSpawn(void) : "Fired when the relay is spawned. If the relay is set to only trigger once, it will "+
+	//	"delete itself after firing this output."
+	output OnTrigger(void) : "Fired when the relay is triggered. If the relay is set to only trigger once, it will "+
+		"delete itself after firing this output."
+]
+
+//-------------------------------------------------------------------------
+//
+// Solid Entities
+//
+//-------------------------------------------------------------------------
+
+@SolidClass base(Targetname) = skybox :
+	""
+[
+	
+]
+
+@SolidClass base(Targetname) = func_portal :
+	""
+[
+	
+]
+
+@SolidClass base(Targetname) = func_kinematic :
+	""
+[
+	first_node(target_destination) : "First Path Node" : "" : ""
+	//initial_speed(float) : "Initial Speed" : 100 : ""
+	move_speed(float) : "Move Speed" : 100 : ""
+	start_sound(sound) : "Move Sound" : "" : ""
+	
+	// Inputs
+	input StartForward(void) : ""
+	input StartBackward(void) : ""
+]
+
+@SolidClass base(Targetname,SurfaceMaterial) = func_physics :
+	""
+[
+	mass(float) : "Mass" : 100 : "0 = Static"
+	clientside_physics(choices) : "Clientside Physics" : 0 : "If enabled, the physics will only be simulated clientside." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+]
+
+@SolidClass base(Targetname) = func_physics_softbody :
+	""
+[
+	pose_matching_coefficient(float) : "Pose Matching Coefficient" : "0.5" : ""
+	anchors_hardness(float) : "Anchors Hardness" : "0.6999" : ""
+	drag_coefficient(float) : "Drag Coefficient" : "0.0" : ""
+	rigid_contacts_hardness(float) : "Rigid Contacts Hardness" : "1.0" : ""
+	soft_contacts_hardness(float) : "Soft Contacts Hardness" : "1.0" : ""
+	lift_coefficient(float) : "Lift Coefficient" : "0.0" : ""
+	kinetic_contacts_hardness(float) : "Kinetic Contacts Hardness" : "0.1" : ""
+	dynamic_friction_coefficient(float) : "Dynamic Friction Coefficient" : "0.2" : ""
+	damping_coefficient(float) : "Damping Coefficient" : "0.0" : ""
+	volume_conversation_coefficient(float) : "Volume Conversation Coefficient" : "0.0" : ""
+	soft_vs_rigid_impulse_split_k(float) : "Soft vs Rigid Impulse Split K" : "0.5" : ""
+	soft_vs_rigid_impulse_split_r(float) : "Soft vs Rigid Impulse Split R" : "0.5" : ""
+	soft_vs_rigid_impulse_split_s(float) : "Soft vs Rigid Impulse Split S" : "0.5" : ""
+	soft_vs_kinetic_hardness(float) : "Soft vs Kinetic Hardness" : "1.0" : ""
+	soft_vs_rigid_hardness(float) : "Soft vs Rigid Hardness" : "0.1" : ""
+	soft_vs_soft_hardness(float) : "Soft vs Soft Hardness" : "0.5" : ""
+	pressure_coefficient(float) : "Pressure Coefficient" : "0.0" : ""
+	velocities_correction_factor(float) : "Velocities Correction Factor" : "1.0" : ""
+	bending_constraints_distance(float) : "Bending Constraints Distance" : "0.2" : ""
+	cluster_count(integer) : "Cluster Count" : 0 : ""
+	max_cluster_iterations(integer) : "Max Cluster Iterations" : 8192 : ""
+
+	mass(float) : "Mass" : 100 : "0 = Static"
+	surface_material(choices) : "Surface Material" : "generic" : "Physics material of this object." =
+	[
+		"generic" : "Generic"
+		"bouncy" : "Bouncy"
+		"carpet" : "Carpet"
+		"concrete" : "Concrete"
+		"dirst" : "Dirt"
+		"glass" : "Glass"
+		"grass" : "Grass"
+		"gravel" : "Gravel"
+		"ice" : "Ice"
+		"metal" : "Metal"
+		"rock" : "Rock"
+		"slippery" : "Slippery"
+		"snow_hard" : "Hard Snow"
+		"snow" : "Snow"
+		"water" : "Water"
+		"wood" : "Wood"
+	]
+	clientside_physics(choices) : "Clientside Physics" : 0 : "If enabled, the physics will only be simulated clientside." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+]
+
+@SolidClass base(Targetname) = func_water :
+	""
+[
+	spawnflags(flags) =
+	[
+		2048 : "Enable Surface Simulation" : 0
+	]
+	surface_material(choices) : "Surface Material" : "default" : "Custom surface material to use for water properties." =
+	[
+		"default" : "Default"
+		"water" : "Water"
+	]
+	max_wave_height(float) : "Max Wave Height" : 100 : "Maximum height the waves are allowed to reach. Only has an effect if the surface simulation flag is enabled. Note: The initial water surface will be lowered by this amount perpendicular to the water plane, the water surface in hammer marks the maximum point the waves can reach!"
+]
+
+@SolidClass base(Targetname,SurfaceMaterial) = func_brush :
+	""
+[
+	solidity(choices) : "Solid" : 1 : "Is this brush solid?" =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+]
+
+@SolidClass base(Targetname) = func_button : 
+	"A brush entity that's designed to be used for a player-useable button. When used by the player, it moves to a pressed position."
+[
+	use_sound(sound) : "Sound" : "" : ""
+	wait(float) : "Delay Before Reset (-1 stay)" : 3 : "Amount of time, in seconds, after the button has been pressed before it returns to the starting position. Once it has returned, it can be used again. If the value is set to -1, the button never returns."
+	
+	// Outputs
+	output OnPressed(integer)  : "Fired when the button is first pressed."
+]
+
+@SolidClass base(Trigger) = trigger_teleport : 
+	"A trigger volume that teleports entities that touch it. Entities are teleported to the Remote Destination, and have their angles "+
+	"set to that of the Remote Destination's. If a Local Destination Landmark is specified, teleported entities are offset from the target "+
+	"by their initial offset from the landmark, and their angles are left alone."
+[
+	target(target_destination) : "Remote Destination" : : "The entity specifying the point to which entities should be teleported."
+
+	spawnflags(flags) =
+	[
+		512 : "Face target direction on teleport" : 0
+	]
+]
+
+@SolidClass base(Trigger) = trigger_touch :
+	"A trigger volume that can be triggered multiple times."
+[
+]
+
+@SolidClass base(Trigger) = trigger_gravity :
+	""
+[
+	gravity_dir(angle) : "Gravity Direction" : "0 0 0" : "Changes the direction of the gravitational force. The 'Affect direction' flag has to be checked for this to have any effect."
+	gravity_force(float) : "Gravity Force / Scale" : 1
+	use_force(choices) : "Use Gravity Force" : 0 : "If set to yes, 'Gravity Force / Scale' will be treated as the actual force and overwrite the default gravitational force entirely. If set to no, it will treat it as a scale of the default gravitational force." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	spawnflags(flags) =
+	[
+		2048 : "Affect gravity direction" : 0
+		4096 : "Reset Gravity on EndTouch" : 1
+		8192 : "Change character orientation" : 1
+	]
+]
+
+@SolidClass base(Trigger) = trigger_push :
+	""
+[
+	push_speed(float) : "Speed" : "20" : ""
+	change_duration(float) : "Change Duration" : "0.5" : "Time it takes to change the players velocity direction when entering the trigger. Only has an effect if the 'Chance Velocity Direction' flag is set!"
+	push_dir(angle) : "Direction (X Y Z)" : "0 0 0" : ""
+	spawnflags(flags) =
+	[
+		2048 : "Chance Velocity Direction" : 0
+	]
+]
+
+@BaseClass = BaseSprite
+[ 
+	texture(decal) : "Material" : "" : ""
+	scale(float) : "Scale" : "1" : ""
+	bloom_scale(float) : "Bloom Scale" : "0" : ""
+	color(color255) : "Color" : "255 255 255 255" : ""
+]
+
+@PointClass base(BaseSprite,Origin,Targetname,Angles) decal() studio("models/editor/axis_helper_thick.mdl") = env_decal : 
+	"An entity that places a decal on the world. If the decal has no target name, it will immediately apply itself when the level is loaded. "+
+	"If it has a name specified, it won't apply until it receives the 'Activate' input."
+[
+
+]
+
+@PointClass base(BaseSprite,Toggle,Origin,Targetname,Angles) size(-2 -2 -2, 2 2 2) sprite() color(20 140 20) = env_sprite : 
+	"An entity that controls the drawing of a sprite in the world." 
+[
+
+]
+
+@PointClass base(Origin,Toggle,Targetname,Angles,Parentname) lightprop("models/editor/spot.mdl") lightcone() sphere(_fifty_percent_distance) sphere(_zero_percent_distance) = env_light_spot_vol : 
+	""
+[
+	cone_height(float) : "Cone Distance" : "100" : ""
+	cone_color(color255) : "Cone Color" : "255 255 255 255" : ""
+	cone_angle(float) : "Cone Angle" : "45" : ""
+]
+
+//-------------------------------------------------------------------------
+//
+// NPCs
+//
+//-------------------------------------------------------------------------
+
+@NPCClass base(BaseNPC) studio("models/zombie/classic.mdl") = npc_zombie : "Zombie"
+[
+]
+
+@NPCClass base(BaseNPC) studio("models/antlion_guard.mdl") = npc_antlionguard : "Antlion Guard"
+[
+	spawnflags(flags) =
+	[
+		2048 : "Start Burrowed" : 0
+	]
+
+	input Unburrow(void) : "Antlion guard will unburrow if he started burrowed."
+]
