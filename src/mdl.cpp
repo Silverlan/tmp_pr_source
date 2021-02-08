@@ -27,7 +27,7 @@
 #include <pragma/game/game_limits.h>
 #include <mathutil/transform.hpp>
 
-extern DLLENGINE Engine *engine;
+extern DLLNETWORK Engine *engine;
 
 #pragma optimize("",off)
 static const std::unordered_map<std::string,Activity> translateActivities = {

@@ -40,12 +40,11 @@
 #pragma comment(lib,"mathutil.lib")
 #pragma comment(lib,"vfilesystem.lib")
 #pragma comment(lib,"shared.lib")
-#pragma comment(lib,"engine.lib")
 #pragma comment(lib,"ishared.lib")
 #pragma comment(lib,"materialsystem.lib")
 #pragma comment(lib,"util_archive.lib")
 
-extern DLLENGINE Engine *engine;
+extern DLLNETWORK Engine *engine;
 
 #include <game_mount_info.hpp>
 static void load_mounted_games()
@@ -507,8 +506,6 @@ static bool load_smd(NetworkState *nw,const std::string &name,Model &mdl,SMDMode
 	return true;
 }
 ///
-
-extern DLLENGINE Engine *engine;
 
 #if 0
 static void register_importers()

@@ -20,7 +20,7 @@
 #include <util_texture_info.hpp>
 #include <sharedutils/util.h>
 
-extern DLLENGINE Engine *engine;
+extern DLLNETWORK Engine *engine;
 
 #pragma optimize("",off)
 

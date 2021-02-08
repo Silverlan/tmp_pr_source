@@ -19,7 +19,7 @@
 #include <pragma/engine.h>
 
 #pragma optimize("",off)
-extern DLLENGINE Engine *engine;
+extern DLLNETWORK Engine *engine;
 const decltype(pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR) pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR = Color{255,255,255,80};
 Vector3 pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(const Vector3 &inPos)
 {

@@ -14,7 +14,7 @@
 #include <sharedutils/util.h>
 #include <sharedutils/util_file.h>
 
-extern DLLENGINE Engine *engine;
+extern DLLNETWORK Engine *engine;
 
 namespace import
 {
