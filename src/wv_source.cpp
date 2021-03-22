@@ -13,6 +13,7 @@
 #include <pragma/engine.h>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/game/game.h>
+#include <pragma/asset/util_asset.hpp>
 #include <mathutil/uquat.h>
 #include <functional>
 #include <pragma/model/model.h>
@@ -29,6 +30,9 @@
 #include <pragma/asset/util_asset.hpp>
 #include <pragma/game/game_resources.hpp>
 #include <pragma/asset/util_asset.hpp>
+#include <util_image.hpp>
+#include <util_texture_info.hpp>
+#include <VTFFile.h>
 
 #pragma optimize("",off)
 
@@ -562,9 +566,328 @@ static void register_importers()
 }
 #endif
 
+static VTFImageFormat get_vtf_image_format(pragma::asset::VtfInfo::Format format)
+{
+	switch(format)
+	{
+	case pragma::asset::VtfInfo::Format::Bc1:
+		return VTFImageFormat::IMAGE_FORMAT_DXT1;
+	case pragma::asset::VtfInfo::Format::Bc1a:
+		return VTFImageFormat::IMAGE_FORMAT_DXT1;//VTFImageFormat::IMAGE_FORMAT_DXT1_ONEBITALPHA;
+	case pragma::asset::VtfInfo::Format::Bc2:
+		return VTFImageFormat::IMAGE_FORMAT_DXT3;
+	case pragma::asset::VtfInfo::Format::Bc3:
+		return VTFImageFormat::IMAGE_FORMAT_DXT5;
+	case pragma::asset::VtfInfo::Format::R8G8B8A8_UNorm:
+		return VTFImageFormat::IMAGE_FORMAT_RGBA8888;
+	case pragma::asset::VtfInfo::Format::R8G8_UNorm:
+		return VTFImageFormat::IMAGE_FORMAT_UV88;
+	case pragma::asset::VtfInfo::Format::R16G16B16A16_SFloat:
+		return VTFImageFormat::IMAGE_FORMAT_RGBA16161616F;
+	case pragma::asset::VtfInfo::Format::R32G32B32A32_SFloat:
+		return VTFImageFormat::IMAGE_FORMAT_RGBA32323232F;
+	case pragma::asset::VtfInfo::Format::A8B8G8R8_UNorm_Pack32:
+		return VTFImageFormat::IMAGE_FORMAT_ABGR8888;
+	case pragma::asset::VtfInfo::Format::B8G8R8A8_UNorm:
+		return VTFImageFormat::IMAGE_FORMAT_BGRA8888;
+	}
+	static_assert(umath::to_integral(pragma::asset::VtfInfo::Format::Count) == 10,"Update this implementation when new format types have been added!");
+}
+static std::optional<uimg::TextureInfo::InputFormat> get_texture_info_input_format(pragma::asset::VtfInfo::Format format)
+{
+	switch(format)
+	{
+	case pragma::asset::VtfInfo::Format::R8G8B8A8_UNorm:
+		return uimg::TextureInfo::InputFormat::R8G8B8A8_UInt;
+	case pragma::asset::VtfInfo::Format::R16G16B16A16_SFloat:
+		return uimg::TextureInfo::InputFormat::R16G16B16A16_Float;
+	case pragma::asset::VtfInfo::Format::R32G32B32A32_SFloat:
+		return uimg::TextureInfo::InputFormat::R32G32B32A32_Float;
+	}
+	static_assert(umath::to_integral(pragma::asset::VtfInfo::Format::Count) == 10,"Update this implementation when new format types have been added!");
+	return {};
+}
+static std::optional<uimg::TextureInfo::OutputFormat> get_texture_info_output_format(pragma::asset::VtfInfo::Format format)
+{
+	switch(format)
+	{
+	case pragma::asset::VtfInfo::Format::Bc1:
+		return uimg::TextureInfo::OutputFormat::BC1;
+	case pragma::asset::VtfInfo::Format::Bc1a:
+		return uimg::TextureInfo::OutputFormat::BC1a;
+	case pragma::asset::VtfInfo::Format::Bc2:
+		return uimg::TextureInfo::OutputFormat::BC2;
+	case pragma::asset::VtfInfo::Format::Bc3:
+		return uimg::TextureInfo::OutputFormat::BC3;
+	}
+	static_assert(umath::to_integral(pragma::asset::VtfInfo::Format::Count) == 10,"Update this implementation when new format types have been added!");
+	return {};
+}
+
+namespace source_engine
+{
+	bool compile_model(const std::string &qcPath,const std::optional<std::string> &game,std::string &outErr);
+	bool open_model_in_hlmv(const std::string &mdlPath,const std::optional<std::string> &game,std::string &outErr);
+	bool open_model_in_file_explorer(const std::string &mdlPath,const std::optional<std::string> &game,std::string &outErr);
+	bool extract_asset_files(const std::unordered_map<std::string,std::string> &files,const std::string &game,std::string &outErr);
+	std::optional<std::string> find_game_with_sdk_tools(std::string &outErr);
+};
+#include <sharedutils/util.h>
+#include <util_archive.hpp>
+static std::optional<std::string> locate_hlmv(const std::optional<std::string> &game,std::string &outErr)
+{
+	std::vector<std::string> files;
+	const std::string hlmvPath = "../bin/hlmv.exe";
+	if(uarch::find_files(hlmvPath,&files,nullptr,true,game) == false || files.empty())
+	{
+		outErr = "Unable to locate \"" +hlmvPath;
+		if(game.has_value())
+			outErr += " for game \"" +*game +"\"";
+		outErr += "!";
+		return {};
+	}
+	return std::move(files.front());
+}
+static std::optional<std::string> locate_studiomdl(const std::optional<std::string> &game,std::string &outErr)
+{
+	std::vector<std::string> files;
+	const std::string studiomdlPath = "../bin/studiomdl.exe";
+	if(uarch::find_files(studiomdlPath,&files,nullptr,true,game) == false || files.empty())
+	{
+		outErr = "Unable to locate \"" +studiomdlPath;
+		if(game.has_value())
+			outErr += " for game \"" +*game +"\"";
+		outErr += "!";
+		return {};
+	}
+	return std::move(files.front());
+}
+bool source_engine::compile_model(const std::string &qcPath,const std::optional<std::string> &game,std::string &outErr)
+{
+	auto absStudiomdlExe = locate_studiomdl(game,outErr);
+	if(absStudiomdlExe.has_value() == false)
+		return false;
+	std::vector<std::string> files;
+
+	std::string absQcPath;
+	if(FileManager::FindAbsolutePath(qcPath,absQcPath) == false)
+	{
+		outErr = "Unable to locate QC \"" +qcPath +"\"!";
+		return false;
+	}
+
+	uint32_t exitCode;
+	std::vector<std::string> args = {"-nop4"};
+	if(game.has_value())
+	{
+		std::vector<std::string> gamePaths;
+		if(uarch::get_mounted_game_paths(*game,gamePaths) == false)
+		{
+			outErr = "Unable to locate game paths for game \"" +*game +"\"!";
+			return false;
+		}
+		for(auto &gamePath : gamePaths)
+		{
+			auto gameInfoPath = gamePath +"gameinfo.txt";
+			if(FileManager::ExistsSystem(gameInfoPath))
+			{
+				files.push_back(gameInfoPath);
+				break;
+			}
+		}
+		if(files.empty())
+		{
+			outErr = "Unable to locate \"gameinfo.txt";
+			if(game.has_value())
+				outErr += " for game \"" +*game +"\"";
+			outErr += "!";
+			return false;
+		}
+		args.push_back("-game \"" +ufile::get_path_from_filename(files[0]) +"\"");
+	}
+	auto result = util::start_and_wait_for_command(("\"" +*absStudiomdlExe +"\" " +ustring::implode(args) +" \"" +absQcPath +"\"").c_str(),nullptr,&exitCode);
+	if(result == false)
+	{
+		if(exitCode != EXIT_SUCCESS)
+		{
+			outErr = "studiomdl.exe failed with error code " +std::to_string(exitCode) +"!";
+			return false;
+		}
+		outErr = "Unable to open studiomdl.exe!";
+	}
+	return result;
+}
+bool source_engine::open_model_in_hlmv(const std::string &mdlPath,const std::optional<std::string> &game,std::string &outErr)
+{
+	auto absHlmvPath = locate_hlmv(game,outErr);
+	if(absHlmvPath.has_value() == false)
+		return false;
+	std::vector<std::string> files;
+	if(uarch::find_files("models/" +mdlPath,&files,nullptr,true,game) == false || files.empty())
+	{
+		outErr = "Unable to locate \"" +mdlPath;
+		if(game.has_value())
+			outErr += " for game \"" +*game +"\"";
+		outErr += "!";
+		return false;
+	}
+	auto &absMdlPath = files[0];
+	auto result = util::start_process(("\"" +*absHlmvPath +"\"").c_str(),"\"" +absMdlPath +"\"",true);
+	if(result == false)
+	{
+		outErr = "Unable to open hlmv.exe!";
+		return false;
+	}
+	return result;
+}
+bool source_engine::open_model_in_file_explorer(const std::string &mdlPath,const std::optional<std::string> &game,std::string &outErr)
+{
+	std::vector<std::string> files;
+	if(uarch::find_files("models/" +mdlPath,&files,nullptr,true,game) == false || files.empty())
+	{
+		outErr = "Unable to locate \"" +mdlPath;
+		if(game.has_value())
+			outErr += " for game \"" +*game +"\"";
+		outErr += "!";
+		return false;
+	}
+	auto &absMdlPath = files.front();
+	util::open_path_in_explorer(ufile::get_path_from_filename(absMdlPath),ufile::get_file_from_filename(absMdlPath));
+	return true;
+}
+bool source_engine::extract_asset_files(const std::unordered_map<std::string,std::string> &files,const std::string &game,std::string &outErr)
+{
+	std::vector<std::string> gamePaths;
+	if(uarch::get_mounted_game_paths(game,gamePaths) == false || gamePaths.empty())
+	{
+		outErr = "Unable to locate game paths for game \"" +game +"\"!";
+		return false;
+	}
+	auto &gamePath = gamePaths.front();
+	std::vector<std::string> failed;
+	for(auto &pair : files)
+	{
+		std::string absPath;
+		if(FileManager::FindAbsolutePath(pair.first,absPath) == false)
+		{
+			failed.push_back(pair.first);
+			continue;
+		}
+		auto relPath = util::Path::CreateFile(pair.second);
+		auto dstPath = gamePath +relPath;
+		FileManager::CreateSystemPath(gamePath,ufile::get_path_from_filename(relPath.GetString()).c_str());
+		auto result = FileManager::CopySystemFile(absPath.c_str(),dstPath.GetString().c_str());
+		if(result)
+			continue;
+		failed.push_back(pair.second);
+	}
+	if(!failed.empty())
+	{
+		outErr = "Failed to copy " +std::to_string(failed.size()) +" asset files:";
+		for(auto &f : failed)
+			outErr += '\n' +f;
+		return false;
+	}
+	return true;
+}
+std::optional<std::string> source_engine::find_game_with_sdk_tools(std::string &outErr)
+{
+	auto &gameMountInfos = uarch::get_game_mount_infos();
+	for(auto &info : gameMountInfos)
+	{
+		if(info.gameEngine != uarch::GameEngine::SourceEngine)
+			continue;
+		std::string err;
+		auto hlmv = locate_hlmv(info.identifier,err);
+		if(hlmv.has_value() == false)
+			continue;
+		auto studiomdl = locate_studiomdl(info.identifier,err);
+		if(studiomdl.has_value() == false)
+			continue;
+		return info.identifier;
+	}
+	return {};
+}
+
 class Model;
 class NetworkState;
 extern "C" {
+	bool PRAGMA_EXPORT export_vtf(
+		const std::string &fileName,const std::function<const uint8_t*(uint32_t,uint32_t)> &pfGetImgData,uint32_t width,uint32_t height,uint32_t szPerPixel,
+		uint32_t numLayers,uint32_t numMipmaps,bool cubemap,const pragma::asset::VtfInfo &vtfTexInfo,const std::function<void(const std::string&)> &errorHandler,
+		bool absoluteFileName
+	)
+	{
+		auto srcFormat = vtfTexInfo.inputFormat;
+		auto dstFormat = vtfTexInfo.outputFormat;
+		std::function<const uint8_t*(uint32_t,uint32_t)> fGetImgData = pfGetImgData;
+		static_assert(umath::to_integral(pragma::asset::VtfInfo::Format::Count) == 10,"Update this implementation when new format types have been added!");
+		if(srcFormat != dstFormat && (
+			dstFormat == pragma::asset::VtfInfo::Format::Bc1 || dstFormat == pragma::asset::VtfInfo::Format::Bc1a ||
+			dstFormat == pragma::asset::VtfInfo::Format::Bc2 || dstFormat == pragma::asset::VtfInfo::Format::Bc3
+		))
+		{
+			std::vector<std::vector<std::vector<uint8_t>>> compressedData;
+			
+			auto texInfoInputFormat = get_texture_info_input_format(srcFormat);
+			auto texInfoOutputFormat = get_texture_info_output_format(dstFormat);
+			assert(texInfoInputFormat.has_value() && texInfoOutputFormat.has_value());
+			if(texInfoInputFormat.has_value() == false || texInfoOutputFormat.has_value() == false)
+				return false;
+
+			uimg::TextureInfo texInfo {};
+			texInfo.inputFormat = *texInfoInputFormat;
+			texInfo.outputFormat = *texInfoOutputFormat;
+			if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::NormalMap))
+				texInfo.SetNormalMap();
+			if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::Srgb))
+				texInfo.flags |= uimg::TextureInfo::Flags::SRGB;
+
+			auto result = uimg::compress_texture(
+				compressedData,[&pfGetImgData](uint32_t level,uint32_t mip,std::function<void()> &deleter) -> const uint8_t* {
+					deleter = nullptr;
+					return pfGetImgData(level,mip);
+				},width,height,szPerPixel,
+				numLayers,numMipmaps,cubemap,
+				texInfo,errorHandler
+			);
+			if(result == false)
+				return false;
+			fGetImgData = [compressedData{std::move(compressedData)}](uint32_t layer,uint32_t mip) -> const uint8_t* {
+				return compressedData[layer][mip].data();
+			};
+			srcFormat = dstFormat;
+		}
+
+		auto vtfSrcFormat = get_vtf_image_format(srcFormat);
+		auto vtfDstFormat = get_vtf_image_format(dstFormat);
+
+		VTFLib::CVTFFile f {};
+		auto result = f.Create(width,height,1u /* frames */,numLayers,1u /* slices */,vtfSrcFormat,false /* thumbnail */,numMipmaps > 1 /* mipmaps */,false /* nullImageData */);
+		if(result == false)
+			return false;
+		for(auto i=decltype(numLayers){0u};i<numLayers;++i)
+		{
+			for(auto j=decltype(numMipmaps){0u};j<numMipmaps;++j)
+			{
+				auto *data = const_cast<vlByte*>(fGetImgData(i,j));
+				// TODO: Smallest mipmap has a size of 0 after compression? Why?
+				if(data == nullptr)
+					continue;
+				f.SetData(0u /* frameIndex */,i,0u /* sliceIndex */,j,data);
+			}
+		}
+		if(vtfSrcFormat != vtfDstFormat)
+			f = VTFLib::CVTFFile{f,vtfDstFormat};
+		if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::Srgb))
+			f.SetFlag(VTFImageFlag::TEXTUREFLAGS_SRGB,true);
+		if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::NormalMap))
+			f.SetFlag(VTFImageFlag::TEXTUREFLAGS_NORMAL,true);
+		if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::GenerateMipmaps))
+			f.GenerateMipmaps();
+		f.GenerateThumbnail();
+		return f.Save((util::get_program_path() +'/' +fileName).c_str());
+	}
 	bool PRAGMA_EXPORT pragma_attach(std::string &errMsg)
 	{
 		pragma::asset::AssetManager::ImporterInfo importerInfo {};
@@ -601,6 +924,78 @@ extern "C" {
 				return import::import_vmd(l);
 			})}
 		});
+		auto &libSourceEngine = lua.RegisterLibrary("source_engine",{
+			{"compile_model",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) -> int32_t {
+				std::string qcPath = Lua::CheckString(l,1);
+				std::optional<std::string> game {};
+				if(Lua::IsSet(l,2))
+					game = Lua::CheckString(l,2);
+				std::string err;
+				auto result = source_engine::compile_model(qcPath,game,err);
+				Lua::Push(l,result);
+				if(result == false)
+				{
+					Lua::PushString(l,err);
+					return 2;
+				}
+				return 1;
+			})},
+			{"open_model_in_hlmv",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+				std::string mdlPath = Lua::CheckString(l,1);
+				std::optional<std::string> game {};
+				if(Lua::IsSet(l,2))
+					game = Lua::CheckString(l,2);
+				std::string err;
+				auto result = source_engine::open_model_in_hlmv(mdlPath,game,err);
+				Lua::Push(l,result);
+				if(result == false)
+				{
+					Lua::PushString(l,err);
+					return 2;
+				}
+				return 1;
+			})},
+			{"open_model_in_file_explorer",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+				std::string mdlPath = Lua::CheckString(l,1);
+				std::optional<std::string> game {};
+				if(Lua::IsSet(l,2))
+					game = Lua::CheckString(l,2);
+				std::string err;
+				auto result = source_engine::open_model_in_file_explorer(mdlPath,game,err);
+				Lua::Push(l,result);
+				if(result == false)
+				{
+					Lua::PushString(l,err);
+					return 2;
+				}
+				return 1;
+			})},
+			{"extract_asset_files",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+				auto tFiles = luabind::from_stack(l,1);
+				auto files = Lua::table_to_map<std::string,std::string>(l,tFiles,1);
+				std::string game = Lua::CheckString(l,2);
+				std::string err;
+				auto result = source_engine::extract_asset_files(files,game,err);
+				Lua::Push(l,result);
+				if(result == false)
+				{
+					Lua::PushString(l,err);
+					return 2;
+				}
+				return 1;
+			})},
+			{"find_game_with_sdk_tools",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+				std::string err;
+				auto gameIdentifier = source_engine::find_game_with_sdk_tools(err);
+				if(!gameIdentifier.has_value())
+				{
+					Lua::PushBool(l,false);
+					return 1;
+				}
+				Lua::PushString(l,*gameIdentifier);
+				return 1;
+			})}
+		});
 	}
 	PRAGMA_EXPORT void initialize_archive_manager()
 	{
@@ -610,11 +1005,11 @@ extern "C" {
 	}
 	PRAGMA_EXPORT void close_archive_manager() {uarch::close();}
 	PRAGMA_EXPORT void find_files(const std::string &path,std::vector<std::string> *outFiles,std::vector<std::string> *outDirectories) {uarch::find_files(path,outFiles,outDirectories);}
-	PRAGMA_EXPORT void open_archive_file(const std::string &path,VFilePtr &f)
+	PRAGMA_EXPORT void open_archive_file(const std::string &path,VFilePtr &f,const std::optional<std::string> &gameIdentifier)
 	{
 		f = FileManager::OpenFile(path.c_str(),"rb");
 		if(f == nullptr)
-			f = uarch::load(path);
+			f = uarch::load(path,nullptr,gameIdentifier);
 	}
 	PRAGMA_EXPORT bool extract_resource(NetworkState *nw,const std::string &fpath,const std::string &outputPath)
 	{

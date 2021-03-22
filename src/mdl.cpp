@@ -22,6 +22,7 @@
 #include <pragma/physics/collisionmesh.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
+#include <sharedutils/util_path.hpp>
 #include <pragma/engine.h>
 #include <pragma/model/animation/vertex_animation.hpp>
 #include <pragma/game/game_limits.h>
@@ -530,9 +531,9 @@ bool import::load_mdl(
 				if(ustring::substr(mdlName,0,7) == std::string("models") +FileManager::GetDirectorySeparator())
 					mdlName = ustring::substr(mdlName,7);
 				ufile::remove_extension_from_filename(mdlName);
-				auto wmdPath = mdlName +".wmd";
-				mdlInfo.model.GetMetaInfo().includes.push_back(wmdPath);
-				if(FileManager::Exists("models\\" +wmdPath) == false)
+				auto incPath = mdlName;
+				mdlInfo.model.GetMetaInfo().includes.push_back(::util::Path::CreateFile(incPath).GetString());
+				if(FileManager::Exists("models\\" +incPath) == false)
 				{
 					auto r = convert_hl2_model(nw,fCreateModel,fCallback,"models\\",mdlName,optLog);
 					if(r == false)
@@ -598,7 +599,7 @@ bool import::load_mdl(
 	}
 	//
 
-	auto itHwm = std::find(mdlInfo.texturePaths.begin(),mdlInfo.texturePaths.end(),"models\\player\\hvyweapon\\hwm\\");
+	auto itHwm = std::find(mdlInfo.texturePaths.begin(),mdlInfo.texturePaths.end(),"models/player/hvyweapon/hwm/");
 	if(itHwm != mdlInfo.texturePaths.end())
 	{
 		// Note: This is a really ugly hack.
@@ -1751,12 +1752,22 @@ std::shared_ptr<Model> import::load_mdl(
 						eyeball.irisMaterialIndex = stdEyeball.texture; // This appears to be always 0, will be reassigned via the meshes below
 
 						eyeball.irisScale = stdEyeball.iris_scale;
-						eyeball.upperFlexDesc = stdEyeball.upperflexdesc;
-						eyeball.lowerFlexDesc = stdEyeball.lowerflexdesc;
-						eyeball.upperLidFlexDesc = stdEyeball.upperlidflexdesc;
-						eyeball.lowerLidFlexDesc = stdEyeball.lowerlidflexdesc;
-						eyeball.lowerTarget = stdEyeball.lowertarget;
-						eyeball.upperTarget = stdEyeball.uppertarget;
+
+						eyeball.upperLid.raiserFlexIndex = stdEyeball.upperflexdesc[0];
+						eyeball.upperLid.neutralFlexIndex = stdEyeball.upperflexdesc[1];
+						eyeball.upperLid.lowererFlexIndex = stdEyeball.upperflexdesc[2];
+						eyeball.upperLid.raiserValue = stdEyeball.uppertarget[0];
+						eyeball.upperLid.neutralValue = stdEyeball.uppertarget[1];
+						eyeball.upperLid.lowererValue = stdEyeball.uppertarget[2];
+						eyeball.upperLid.lidFlexIndex = stdEyeball.upperlidflexdesc;
+
+						eyeball.lowerLid.raiserFlexIndex = stdEyeball.lowerflexdesc[0];
+						eyeball.lowerLid.neutralFlexIndex = stdEyeball.lowerflexdesc[1];
+						eyeball.lowerLid.lowererFlexIndex = stdEyeball.lowerflexdesc[2];
+						eyeball.lowerLid.raiserValue = stdEyeball.lowertarget[0];
+						eyeball.lowerLid.neutralValue = stdEyeball.lowertarget[1];
+						eyeball.lowerLid.lowererValue = stdEyeball.lowertarget[2];
+						eyeball.lowerLid.lidFlexIndex = stdEyeball.lowerlidflexdesc;
 
 						// These are always the same in Source
 						eyeball.maxDilationFactor = 1.f;
@@ -3452,22 +3463,45 @@ std::shared_ptr<Model> import::load_mdl(
 		auto &irisMaterialIndex = eyeball.irisMaterialIndex;
 		if(irisMaterialIndex < textureTranslations.size())
 			irisMaterialIndex = textureTranslations.at(irisMaterialIndex);
-		for(auto *flexDescIdxSet : std::vector<std::array<int32_t,3>*>{&eyeball.lowerFlexDesc,&eyeball.upperFlexDesc})
-		{
-			for(auto &flexDescIdx : *flexDescIdxSet)
-			{
-				if(flexDescIdx >= mdlInfo.flexDescs.size())
-					continue;
-				auto &flexDesc = mdlInfo.flexDescs.at(flexDescIdx);
-				uint32_t pragmaIdx;
-				if(mdl.GetFlexId(flexDesc.GetName(),pragmaIdx))
-					flexDescIdx = pragmaIdx;
-			}
-		}
+		auto fTranslateFlex = [&mdlInfo,&mdl](int32_t &flexIdx) {
+			if(flexIdx >= mdlInfo.flexDescs.size())
+				return;
+			auto &flexDesc = mdlInfo.flexDescs.at(flexIdx);
+			uint32_t pragmaIdx;
+			if(mdl.GetFlexId(flexDesc.GetName(),pragmaIdx))
+				flexIdx = pragmaIdx;
+		};
+		fTranslateFlex(eyeball.lowerLid.raiserFlexIndex);
+		fTranslateFlex(eyeball.lowerLid.neutralFlexIndex);
+		fTranslateFlex(eyeball.lowerLid.lowererFlexIndex);
+		fTranslateFlex(eyeball.lowerLid.lidFlexIndex);
+		fTranslateFlex(eyeball.upperLid.raiserFlexIndex);
+		fTranslateFlex(eyeball.upperLid.neutralFlexIndex);
+		fTranslateFlex(eyeball.upperLid.lowererFlexIndex);
+		fTranslateFlex(eyeball.upperLid.lidFlexIndex);
 	}
 
 	auto isStaticProp = (mdlInfo.header.flags &STUDIOHDR_FLAGS_STATIC_PROP) != 0;
+	if(isStaticProp == false && skeleton.GetBoneCount() <= 1)
+	{
+		// We'll just assume this is a static prop...
+		isStaticProp = true;
+	}
 	umath::set_flag(mdl.GetMetaInfo().flags,Model::Flags::Inanimate,isStaticProp);
+
+	if(isStaticProp)
+	{
+		// Source replaces all bones in static props with "static_prop" and adds vertex weights for it to all vertices.
+		// We don't want it to create any unnecessary vertex weight buffers in Pragma, so we'll clear all the vertex weights.
+		for(auto &meshGroup : mdl.GetMeshGroups())
+		{
+			for(auto &mesh : meshGroup->GetMeshes())
+			{
+				for(auto &subMesh : mesh->GetSubMeshes())
+					subMesh->GetVertexWeights().clear();
+			}
+		}
+	}
 
 	//mdl.Update(ModelUpdateFlags::AllData);
 	//auto rot = uquat::create(EulerAngles(0.f,90.f,0.f));

@@ -16,31 +16,30 @@ void pragma::asset::vbsp::BSPTree::InitializeNode(Node &node,bsp::File &bsp,cons
 	umath::swap(node.max.y,node.max.z);
 	umath::negate(node.max.z);
 }
-std::shared_ptr<pragma::asset::vbsp::BSPTree::Node> pragma::asset::vbsp::BSPTree::CreateLeaf(bsp::File &bsp,int32_t nodeIndex)
+pragma::asset::vbsp::BSPTree::Node &pragma::asset::vbsp::BSPTree::CreateLeaf(bsp::File &bsp,int32_t nodeIndex)
 {
 	auto &leaf = bsp.GetLeaves().at(nodeIndex);
-	auto pNode = std::make_shared<Node>();
-	pNode->leaf = true;
-	pNode->cluster = leaf.cluster;
-	pNode->originalNodeIndex = nodeIndex;
-	InitializeNode(*pNode,bsp,leaf.mins,leaf.maxs,leaf.firstleafface,leaf.numleaffaces);
-	m_nodes.push_back(pNode);
+	auto &pNode = ::util::BSPTree::CreateNode();
+	pNode.leaf = true;
+	pNode.cluster = leaf.cluster;
+	pNode.originalNodeIndex = nodeIndex;
+	InitializeNode(pNode,bsp,leaf.mins,leaf.maxs,leaf.firstleafface,leaf.numleaffaces);
 	return pNode;
 }
 
-std::shared_ptr<pragma::asset::vbsp::BSPTree::Node> pragma::asset::vbsp::BSPTree::CreateNode(bsp::File &bsp,int32_t nodeIndex)
+pragma::asset::vbsp::BSPTree::Node &pragma::asset::vbsp::BSPTree::CreateNode(bsp::File &bsp,int32_t nodeIndex)
 {
 	auto &node = bsp.GetNodes().at(nodeIndex);
-	auto pNode = std::make_shared<Node>();
-	pNode->leaf = false;
-	pNode->originalNodeIndex = nodeIndex;
-	InitializeNode(*pNode,bsp,node.mins,node.maxs,node.firstface,node.numfaces);
+	auto &pNode = ::util::BSPTree::CreateNode();
+	pNode.leaf = false;
+	pNode.originalNodeIndex = nodeIndex;
+	InitializeNode(pNode,bsp,node.mins,node.maxs,node.firstface,node.numfaces);
 
 	auto &plane = bsp.GetPlanes().at(node.planenum);
 	auto planeNormal = plane.normal;
 	umath::swap(planeNormal.y,planeNormal.z);
 	umath::negate(planeNormal.z);
-	pNode->plane = umath::Plane{planeNormal,plane.dist};
+	pNode.plane = umath::Plane{planeNormal,plane.dist};
 
 	auto i = 0u;
 	for(auto childIdx : node.children)
@@ -48,16 +47,15 @@ std::shared_ptr<pragma::asset::vbsp::BSPTree::Node> pragma::asset::vbsp::BSPTree
 		if(childIdx >= 0)
 		{
 			auto nodeIdx = childIdx;
-			pNode->children.at(i) = CreateNode(bsp,nodeIdx);
+			pNode.children.at(i) = CreateNode(bsp,nodeIdx).index;
 		}
 		else
 		{
 			auto leafIdx = -1 -childIdx;
-			pNode->children.at(i) = CreateLeaf(bsp,leafIdx);
+			pNode.children.at(i) = CreateLeaf(bsp,leafIdx).index;
 		}
 		++i;
 	}
-	m_nodes.push_back(pNode);
 	return pNode;
 }
 std::shared_ptr<pragma::asset::vbsp::BSPTree> pragma::asset::vbsp::BSPTree::Create(bsp::File &bsp)
@@ -70,7 +68,7 @@ std::shared_ptr<pragma::asset::vbsp::BSPTree> pragma::asset::vbsp::BSPTree::Crea
 	if(clusterVisibility.empty())
 		return tree; // Some maps don't seem to have cluster visibility information? I'm not sure what's causing it (Maybe vvis disabled during compilation?)
 	tree->m_nodes.reserve(bsp.GetLeaves().size() +bsp.GetNodes().size());
-	tree->m_rootNode = tree->CreateNode(bsp,0);
+	tree->m_rootNode = tree->CreateNode(bsp,0).index;
 
 	auto numClusters = tree->m_clusterCount = clusterVisibility.size();
 	auto numCompressedClusters = umath::pow2(numClusters);
@@ -90,14 +88,14 @@ std::shared_ptr<pragma::asset::vbsp::BSPTree> pragma::asset::vbsp::BSPTree::Crea
 
 	// Convert BSP nodes to Pragma's coordinate system
 	std::function<void(util::BSPTree::Node &node)> fConvertNodes = nullptr;
-	fConvertNodes = [&fConvertNodes](util::BSPTree::Node &node) {
+	fConvertNodes = [&fConvertNodes,&tree](util::BSPTree::Node &node) {
 		node.min = pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(node.min);
 		node.max = pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(node.max);
 		if(node.leaf)
 			return;
 		node.plane.SetNormal(pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(node.plane.GetNormal()));
-		fConvertNodes(*node.children.at(0));
-		fConvertNodes(*node.children.at(1));
+		fConvertNodes(tree->m_nodes[node.children.at(0)]);
+		fConvertNodes(tree->m_nodes[node.children.at(1)]);
 	};
 	fConvertNodes(tree->GetRootNode());
 	return tree;

@@ -382,13 +382,13 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 		for(auto nodeIdx=decltype(bspNodes.size()){0u};nodeIdx<bspNodes.size();++nodeIdx)
 		{
 			auto &bspNode = bspNodes.at(nodeIdx);
-			if(bspNode->leaf == false)
+			if(bspNode.leaf == false)
 				continue;
-			auto itClusterMesh = clusterMeshes.find(bspNode->cluster);
+			auto itClusterMesh = clusterMeshes.find(bspNode.cluster);
 			if(itClusterMesh == clusterMeshes.end())
-				itClusterMesh = clusterMeshes.insert(std::make_pair(bspNode->cluster,ClusterMesh{})).first;
+				itClusterMesh = clusterMeshes.insert(std::make_pair(bspNode.cluster,ClusterMesh{})).first;
 			auto &clusterMesh = itClusterMesh->second;
-			for(auto leafFaceIndex=bspNode->firstFace;leafFaceIndex<(bspNode->firstFace +bspNode->numFaces);++leafFaceIndex)
+			for(auto leafFaceIndex=bspNode.firstFace;leafFaceIndex<(bspNode.firstFace +bspNode.numFaces);++leafFaceIndex)
 			{
 				auto faceIdx = leafFaces.at(leafFaceIndex);
 				for(auto &triInfo : bspTriangles)
@@ -618,7 +618,7 @@ void pragma::asset::vbsp::BSPConverter::OptimizeLevelGeometry(Model &mdl)
 			// We'll have to determine which clusters they belong to manually.
 			Vector3 min,max;
 			mesh->GetBounds(min,max);
-			auto leafNodes = bspTree->FindLeafNodesInAABB(min,max);
+			auto leafNodes = bspTree->FindLeafNodesInAabb(min,max);
 			std::unordered_set<util::BSPTree::ClusterIndex> clusters;
 			for(auto *node : leafNodes)
 			{

@@ -394,7 +394,7 @@ static void translate_model_path(std::string &mdlPath)
 	}
 	size_t pext = mdlPath.find_last_of('.');
 	if(pext != size_t(-1))
-		mdlPath = mdlPath.substr(0,pext) +".wmd";
+		mdlPath = mdlPath.substr(0,pext);
 }
 
 void source_engine::translate_key_value(

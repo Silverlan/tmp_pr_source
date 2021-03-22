@@ -2,6 +2,7 @@
 #include "source_engine/vbsp/bsp_converter.hpp"
 #include "source_engine/source_engine.hpp"
 #include <pragma/asset_types/world.hpp>
+#include <pragma/asset/util_asset.hpp>
 #include <pragma/game/game.h>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/model/model.h>
@@ -17,6 +18,7 @@
 #include <util_fgd.hpp>
 #include <util_archive.hpp>
 #include <pragma/engine.h>
+#include <udm.hpp>
 
 #pragma optimize("",off)
 extern DLLNETWORK Engine *engine;
@@ -113,7 +115,19 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		auto name = mdlInfo.entityData->GetClassName() +"_" +std::to_string(mdlInfo.entityData->GetMapIndex());
 		auto path = "maps/" +GetMapName() +"/" +name;
 		mdlInfo.entityData->SetKeyValue("model",path);
-		mdlInfo.model->Save(&m_game,path,"addons/converted/");
+		std::string err;
+		auto res = mdlInfo.model->Save(m_game,util::CONVERT_PATH +"models/" +path,err);
+		if(res == false)
+			Con::cwar<<"WARNING: Unable to save model '"<<path<<"': "<<err<<Con::endl;
+	}
+
+	// Generate uuids
+	auto path = util::Path::CreateFile(m_path);
+	auto seed = std::hash<std::string>{}(path.GetString());
+	for(auto &ent : m_outputWorldData->GetEntities())
+	{
+		auto uuid = util::generate_uuid_v4(seed); // Seed may overflow, but doesn't really bother us in this case
+		ent->SetKeyValue("uuid",util::uuid_to_string(uuid));
 	}
 
 	util::ScopeGuard sg([]() {
@@ -121,10 +135,25 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 	});
 
 	m_messageLogger("Creating output file '" +m_path +"'...");
-	std::string errMsg;
-	if(m_outputWorldData->Write(m_path,&errMsg) == false)
-		m_messageLogger("ERROR: " +errMsg);
-	return true;
+
+	try
+	{
+		auto udmData = udm::Data::Create();
+		std::string errMsg;
+		m_outputWorldData->Save(udmData->GetAssetData(),GetMapName(),errMsg);
+		auto fileName = m_path;
+		ufile::remove_extension_from_filename(fileName);
+		auto ext = pragma::asset::get_udm_format_extension(pragma::asset::Type::Map,true);
+		assert(ext.has_value());
+		fileName += "." +*ext;
+		FileManager::CreatePath(ufile::get_path_from_filename(util::CONVERT_PATH +fileName).c_str());
+		return udmData->Save(util::CONVERT_PATH +fileName);
+	}
+	catch(const udm::Exception &e)
+	{
+		return false;
+	}
+	return false;
 }
 
 void pragma::asset::vbsp::BSPConverter::ParseEntityGeometryData(pragma::asset::EntityData &entData,const std::unordered_set<uint32_t> &materialRemovalTable,int32_t skyTexIdx,int32_t skyTex2dIdx)

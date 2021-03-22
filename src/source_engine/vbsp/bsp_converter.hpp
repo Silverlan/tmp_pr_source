@@ -33,8 +33,8 @@ namespace pragma::asset::vbsp
 		static std::shared_ptr<BSPTree> Create(bsp::File &bsp);
 	protected:
 		static void InitializeNode(Node &node,::bsp::File &bsp,const std::array<int16_t,3u> &min,const std::array<int16_t,3u> &max,uint16_t firstFace,uint16_t faceCount);
-		std::shared_ptr<Node> CreateNode(::bsp::File &bsp,int32_t nodeIndex);
-		std::shared_ptr<Node> CreateLeaf(::bsp::File &bsp,int32_t nodeIndex);
+		Node &CreateNode(::bsp::File &bsp,int32_t nodeIndex);
+		Node &CreateLeaf(::bsp::File &bsp,int32_t nodeIndex);
 		BSPTree();
 	};
 

@@ -53,7 +53,7 @@ std::shared_ptr<pragma::asset::WorldData> source2::convert::convert_map(Game &ga
 				auto mdl = convert_model(game,*s2Mdl);
 				auto name = s2Mdl->GetName();
 				ufile::remove_extension_from_filename(name);
-				mdl->Save(nw.GetGameState(),name,util::IMPORT_PATH);
+				mdl->SaveLegacy(nw.GetGameState(),name,util::IMPORT_PATH);
 				models.push_back(name);
 				transforms.push_back(t);
 			}
