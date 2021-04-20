@@ -13,6 +13,7 @@
 #include <pragma/engine.h>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/game/game.h>
+#include <pragma/util/util_game.hpp>
 #include <pragma/asset/util_asset.hpp>
 #include <mathutil/uquat.h>
 #include <functional>
@@ -33,6 +34,7 @@
 #include <util_image.hpp>
 #include <util_texture_info.hpp>
 #include <VTFFile.h>
+#include <udm.hpp>
 
 #pragma optimize("",off)
 
@@ -51,99 +53,108 @@
 extern DLLNETWORK Engine *engine;
 
 #include <game_mount_info.hpp>
-static void load_mounted_games()
+static bool load_mounted_games()
 {
-	auto f = FileManager::OpenFile("cfg/mounted_games.txt","r");
-	if(f == nullptr)
-		return;
-	std::unordered_map<std::string,std::string> enums {};
-	auto root = ds::System::ReadData(f,enums);
-	if(root == nullptr)
-		return;
-	auto &data = *root->GetData();
+	std::string err;
+	auto udmData = util::load_udm_asset("cfg/mounted_games.udm",&err);
+	if(udmData == nullptr)
+		return false;
+	auto &data = *udmData;
+	auto udm = data.GetAssetData().GetData();
+
 	std::vector<uarch::GameMountInfo> mountedGames {};
-	mountedGames.reserve(data.size());
-	for(auto &pair : data)
+	mountedGames.reserve(udm.GetChildCount());
+	for(auto pair : udm.ElIt())
 	{
-		if(pair.second->IsBlock() == false)
-			continue;
-		auto &block = static_cast<ds::Block&>(*pair.second);
 		mountedGames.push_back({});
 		auto &gameInfo = mountedGames.back();
-		gameInfo.identifier = pair.first;
-		gameInfo.localizationName = block.GetString("localization_name","");
-		gameInfo.absolutePath = block.GetString("absolute_game_path","");
-		gameInfo.enabled = block.GetBool("enabled",true);
+		gameInfo.identifier = pair.key;
+		
+		auto &child = pair.property;
+		child["localization_name"](gameInfo.localizationName);
+		gameInfo.enabled = true;
+		child["enabled"](gameInfo.enabled);
 
-		auto steamSettingsBlock = block.GetBlock("steam");
-		if(steamSettingsBlock)
+		auto udmSteam = child["steam"];
+		if(udmSteam)
 		{
 			auto &steamSettings = gameInfo.steamSettings = uarch::SteamSettings{};
-			steamSettings->appId = steamSettingsBlock->GetInt("app_id",std::numeric_limits<uarch::SteamSettings::AppId>::max());
-			if(steamSettingsBlock->HasValue("game_path"))
-				steamSettings->gamePaths.push_back(steamSettingsBlock->GetString("game_path",""));
+			steamSettings->appId = std::numeric_limits<uarch::SteamSettings::AppId>::max();
+			udmSteam["app_id"](steamSettings->appId);
+			auto udmGamePath = udmSteam["game_path"];
+			if(udmGamePath)
+				steamSettings->gamePaths.push_back(udmGamePath.ToValue<udm::String>(""));
 			else
-			{
-				auto vGamePaths = steamSettingsBlock->GetBlock("game_paths");
-				if(vGamePaths)
-				{
-					auto &data = *vGamePaths->GetData();
-					auto n = data.size();
-					steamSettings->gamePaths.reserve(n);
-					for(auto i=decltype(n){0u};i<n;++i)
-					{
-						auto it = data.find(std::to_string(i));
-						if(it == data.end() || typeid(*it->second) != typeid(ds::String))
-							continue;
-						steamSettings->gamePaths.push_back(static_cast<ds::String&>(*it->second).GetValue());
-					}
-				}
-			}
-			steamSettings->mountWorkshop = steamSettingsBlock->GetBool("mount_workshop",false);
+				udmSteam["game_paths"].GetBlobData(steamSettings->gamePaths);
+			udmSteam["mount_workshop"](steamSettings->mountWorkshop);
 		}
 
-		auto engineBlock = block.GetBlock("engine");
-		if(engineBlock)
+		auto udmEngine = child["engine"];
+		if(udmEngine)
 		{
-			auto *engineSettings = gameInfo.SetEngine(uarch::engine_name_to_enum(engineBlock->GetString("name","")));
+			auto *engineSettings = gameInfo.SetEngine(uarch::engine_name_to_enum(udmEngine["name"].ToValue<udm::String>("")));
 			if(engineSettings)
 			{
-				auto archivesBlock = engineBlock->GetBlock("archives");
-				if(archivesBlock)
-				{
-					auto &archivesBlockData = *archivesBlock->GetData();
-					for(auto &pair : archivesBlockData)
-					{
-						if(pair.second->IsBlock() == false)
-							continue;
-						auto &archiveBlock = static_cast<ds::Block&>(*pair.second);
-						auto &archName = pair.first;
+				auto udmArchives = udmEngine["archives"];
 
-						switch(gameInfo.gameEngine)
-						{
-						case uarch::GameEngine::SourceEngine:
-						{
-							auto &vpkInfo = (static_cast<uarch::SourceEngineSettings&>(*engineSettings).vpkList[archName] = {});
-							vpkInfo.rootDir = archiveBlock.GetString("root_dir");
-							break;
-						}
-						case uarch::GameEngine::Source2:
-						{
-							auto &vpkInfo = (static_cast<uarch::Source2Settings&>(*engineSettings).vpkList[archName] = {});
-							vpkInfo.rootDir = archiveBlock.GetString("root_dir");
-							break;
-						}
-						case uarch::GameEngine::Gamebryo:
-						{
-							(static_cast<uarch::GamebryoSettings&>(*engineSettings).bsaList[archName] = {});
-							break;
-						}
-						case uarch::GameEngine::CreationEngine:
-						{
-							(static_cast<uarch::CreationEngineSettings&>(*engineSettings).ba2List[archName] = {});
-							break;
-						}
-						}
+				// Array
+				for(auto it=udmArchives.begin<udm::String>();it!=udmArchives.end<udm::String>();++it)
+				{
+					auto &archName = *it;
+					switch(gameInfo.gameEngine)
+					{
+					case uarch::GameEngine::SourceEngine:
+					{
+						auto &vpkInfo = (static_cast<uarch::SourceEngineSettings&>(*engineSettings).vpkList[archName] = {});
+						break;
+					}
+					case uarch::GameEngine::Source2:
+					{
+						auto &vpkInfo = (static_cast<uarch::Source2Settings&>(*engineSettings).vpkList[archName] = {});
+						break;
+					}
+					case uarch::GameEngine::Gamebryo:
+					{
+						(static_cast<uarch::GamebryoSettings&>(*engineSettings).bsaList[archName] = {});
+						break;
+					}
+					case uarch::GameEngine::CreationEngine:
+					{
+						(static_cast<uarch::CreationEngineSettings&>(*engineSettings).ba2List[archName] = {});
+						break;
+					}
+					}
+				}
+
+				// Element
+				for(auto pair : udmArchives.ElIt())
+				{
+					auto archName = std::string{pair.key};
+
+					switch(gameInfo.gameEngine)
+					{
+					case uarch::GameEngine::SourceEngine:
+					{
+						auto &vpkInfo = (static_cast<uarch::SourceEngineSettings&>(*engineSettings).vpkList[archName] = {});
+						pair.property["root_dir"](vpkInfo.rootDir);
+						break;
+					}
+					case uarch::GameEngine::Source2:
+					{
+						auto &vpkInfo = (static_cast<uarch::Source2Settings&>(*engineSettings).vpkList[archName] = {});
+						pair.property["root_dir"](vpkInfo.rootDir);
+						break;
+					}
+					case uarch::GameEngine::Gamebryo:
+					{
+						(static_cast<uarch::GamebryoSettings&>(*engineSettings).bsaList[archName] = {});
+						break;
+					}
+					case uarch::GameEngine::CreationEngine:
+					{
+						(static_cast<uarch::CreationEngineSettings&>(*engineSettings).ba2List[archName] = {});
+						break;
+					}
 					}
 				}
 			}
@@ -152,6 +163,7 @@ static void load_mounted_games()
 
 	for(auto &gameInfo : mountedGames)
 		uarch::mount_game(gameInfo);
+	return true;
 }
 
 uint32_t import::util::add_texture(NetworkState &nw,Model &mdl,const std::string &name,TextureGroup *optTexGroup,bool forceAddToTexGroup)
@@ -208,9 +220,9 @@ void import::util::port_model_texture_assets(NetworkState &nw,Model &mdl)
 		for(auto &lookupPath : mdl.GetTexturePaths())
 		{
 			auto matPath = lookupPath +matName;
-			if(FileManager::Exists("materials/" +matPath +".wmi") || FileManager::Exists("materials/" +matPath +".vmt") || FileManager::Exists("materials/" +matPath +".vmat_c"))
-				break; // Material exists, no need to do anything
-			if(nw.PortMaterial(matPath +".wmi",nullptr))
+			if(pragma::asset::exists(nw,matPath,pragma::asset::Type::Material) || FileManager::Exists("materials/" +matPath +".vmt") || FileManager::Exists("materials/" +matPath +".vmat_c"))
+				break;
+			if(nw.PortMaterial(matPath +"." +std::string{pragma::asset::FORMAT_MATERIAL_ASCII},nullptr))
 				break;
 		}
 	}

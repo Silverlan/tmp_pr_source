@@ -504,7 +504,7 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 	mdl.AddAnimation("reference",anim);
 
 	auto numBones = mdlData->bones.size();
-	std::vector<uint32_t> boneList(numBones);
+	std::vector<uint16_t> boneList(numBones);
 	for(auto i=decltype(numBones){0};i<numBones;++i)
 		boneList.at(i) = i;
 	anim->SetBoneList(boneList);

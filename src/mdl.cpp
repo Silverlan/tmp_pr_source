@@ -1243,6 +1243,14 @@ std::shared_ptr<Model> import::load_mdl(
 	animsWithSequences.reserve(mdlInfo.sequences.size());
 	std::unordered_map<uint32_t,uint32_t> seqAnims; // Map sequence to animation
 	std::vector<std::string> animNames(anims.size());
+	auto fApplyAnimFlags = [](Animation &anim,int32_t flags) {
+		if(flags &STUDIO_LOOPING)
+			anim.AddFlags(FAnim::Loop);
+		if(flags &STUDIO_AUTOPLAY)
+			anim.AddFlags(FAnim::Autoplay | FAnim::Loop); // Autoplay animations are always looped
+		if(flags &STUDIO_DELTA)
+			anim.AddFlags(FAnim::Gesture);
+	};
 	for(auto i=decltype(mdlInfo.sequences.size()){0};i<mdlInfo.sequences.size();++i)
 	{
 		auto &seq = mdlInfo.sequences.at(i);
@@ -1283,13 +1291,7 @@ std::shared_ptr<Model> import::load_mdl(
 		anim->SetRenderBounds(seq.GetMin(),seq.GetMax());
 		anim->GetBoneWeights() = seq.GetWeights();
 
-		auto flags = seq.GetFlags();
-		if(flags &STUDIO_LOOPING)
-			anim->AddFlags(FAnim::Loop);
-		if(flags &STUDIO_AUTOPLAY)
-			anim->AddFlags(FAnim::Autoplay | FAnim::Loop); // Autoplay animations are always looped
-		if(flags &STUDIO_DELTA)
-			anim->AddFlags(FAnim::Gesture);
+		fApplyAnimFlags(*anim,seq.GetFlags());
 
 		auto numFrames = anim->GetFrameCount();
 		for(auto &ev : seq.GetEvents())
@@ -1320,6 +1322,8 @@ std::shared_ptr<Model> import::load_mdl(
 		{
 			auto &name = animDescs.at(i).GetName();
 			mdl.AddAnimation(name,anim);
+			auto &desc = animDescs.at(i).GetStudioDesc();
+			fApplyAnimFlags(*anim,desc.flags);
 			if(name == "reference")
 				bHasReferenceAnim = true;
 			animNames.at(i) = name;
@@ -1573,7 +1577,7 @@ std::shared_ptr<Model> import::load_mdl(
 	}
 	reference->GetFrames().clear();
 
-	std::vector<uint32_t> refBoneList;
+	std::vector<uint16_t> refBoneList;
 	refBoneList.reserve(header.numbones);
 	for(auto i=decltype(header.numbones){0};i<header.numbones;++i)
 		refBoneList.push_back(i);

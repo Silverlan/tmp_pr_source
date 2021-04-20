@@ -7,6 +7,8 @@
 #include <pragma/model/animation/skeleton.h>
 #include <pragma/model/model.h>
 #include <pragma/model/modelmesh.h>
+#include <pragma/asset/util_asset.hpp>
+#include <pragma/game/game_resources.hpp>
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_file.h>
 #include <util_archive.hpp>
@@ -557,7 +559,9 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 
 			auto &matManager = nw->GetMaterialManager();
 			auto *mat = matManager.CreateMaterial((albedoPath +albedoMap).GetString(),"pbr",root);
-			mat->Save(mat->GetName(),"addons/imported/");
+			auto savePath = pragma::asset::relative_path_to_absolute_path(mat->GetName(),pragma::asset::Type::Material,util::CONVERT_PATH);
+			std::string err;
+			mat->Save(savePath.GetString(),err);
 		};
 
 		// Find materials
