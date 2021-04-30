@@ -4,7 +4,7 @@
 #include <mathutil/uvec.h>
 #include <fsys/filesystem.h>
 #include <array>
-#include <pragma/model/animation/animation.h>
+#include <pragma/model/animation/animation.hpp>
 #include "mdl_bone.h"
 #include "quaternion48.h"
 #include "quaternion64.h"
@@ -191,7 +191,7 @@ namespace import
 			void ReadMovements(const mdl::studiohdr_t &mdlHeader,uint64_t offset,uint64_t relOffset,const VFilePtr &f);
 			void ReadAnimation(const mdl::studiohdr_t &mdlHeader,uint64_t offset,uint64_t relOffset,const VFilePtr &f);
 			void ReadAnimationSections(const mdl::studiohdr_t &mdlHeader,uint64_t offset,const VFilePtr &f);
-			std::shared_ptr<::Animation> CalcAnimation(const import::MdlInfo &info);
+			std::shared_ptr<pragma::animation::Animation> CalcAnimation(const import::MdlInfo &info);
 
 			void DebugPrint(const std::string &t="");
 		};

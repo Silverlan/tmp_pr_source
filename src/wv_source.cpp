@@ -279,7 +279,7 @@ static void update_skeletal_hierarchy(SMDModel &smd,Skeleton &skeleton)
 	}
 }
 
-static void add_nodes_to_skeleton(SMDModel &smd,Skeleton &skeleton,Animation *anim)
+static void add_nodes_to_skeleton(SMDModel &smd,Skeleton &skeleton,pragma::animation::Animation *anim)
 {
 	auto &smdSkeleton = smd.GetSkeleton();
 	auto &smdNodes = smd.GetNodes();
@@ -320,7 +320,7 @@ static void generate_reference(SMDModel &smd,Model &mdl)
 	auto animId = mdl.LookupAnimation("reference");
 	if(animId == -1)
 	{
-		mdl.AddAnimation("reference",Animation::Create());
+		mdl.AddAnimation("reference",pragma::animation::Animation::Create());
 		animId = mdl.LookupAnimation("reference");
 	}
 
@@ -373,7 +373,7 @@ static void to_local_bone_system(const SMDModel::Frame &frame,const SMDModel::No
 	}
 }
 
-static void update_reference(Model &mdl,Animation &anim) // Adds all new bones to the reference pose
+static void update_reference(Model &mdl,pragma::animation::Animation &anim) // Adds all new bones to the reference pose
 {
 	auto numBones = mdl.GetBoneCount();
 	auto &animBoneList = anim.GetBoneList();
@@ -409,7 +409,7 @@ static void update_reference(Model &mdl,Animation &anim) // Adds all new bones t
 	}
 }
 
-static void generate_animation(SMDModel &smd,Model &mdl,Animation &anim)
+static void generate_animation(SMDModel &smd,Model &mdl,pragma::animation::Animation &anim)
 {
 	auto &smdFrames = smd.GetFrames();
 	auto numBones = anim.GetBoneCount();
@@ -454,7 +454,7 @@ static bool load_smd(NetworkState *nw,const std::string &name,Model &mdl,SMDMode
 		mdl.Update();
 		return true;
 	}
-	auto anim = Animation::Create();
+	auto anim = pragma::animation::Animation::Create();
 	mdl.GetSkeleton().GetBones().clear();
 	mdl.GetSkeleton().GetRootBones().clear();
 	add_nodes_to_skeleton(smd,mdl.GetSkeleton(),anim.get());
@@ -1177,7 +1177,7 @@ extern "C" {
 		for(auto i=decltype(numMeshGroups){0};i<numMeshGroups;++i)
 			mdl->GetBaseMeshes().push_back(i);
 
-		auto refAnim = Animation::Create();
+		auto refAnim = pragma::animation::Animation::Create();
 		auto &skeleton = mdl->GetSkeleton();
 		auto numBones = skeleton.GetBoneCount();
 		auto &boneList = refAnim->GetBoneList();

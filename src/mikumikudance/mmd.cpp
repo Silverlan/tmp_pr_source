@@ -499,7 +499,7 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 		++boneId;
 	}
 	auto frame = Frame::Create(reference);
-	auto anim = Animation::Create();
+	auto anim = pragma::animation::Animation::Create();
 	anim->AddFrame(frame);
 	mdl.AddAnimation("reference",anim);
 

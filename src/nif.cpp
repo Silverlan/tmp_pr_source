@@ -212,7 +212,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 		}
 		auto refAnim = mdl->GetAnimation(0);
 		auto reference = refAnim->GetFrame(0);
-		auto anim = Animation::Create();
+		auto anim = pragma::animation::Animation::Create();
 		auto &bones = skeleton.GetBones();
 		auto numBones = reference->GetBoneCount();//skeleton.GetBoneCount();
 		anim->ReserveBoneIds(anim->GetBoneCount() +numBones);

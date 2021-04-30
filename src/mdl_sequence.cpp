@@ -199,7 +199,7 @@ import::mdl::Sequence::Event::Event(const VFilePtr &f)
 			break;
 		}
 	}
-	m_event = ::Animation::GetEventEnumRegister().RegisterEnum("EVENT_" +name);
+	m_event = pragma::animation::Animation::GetEventEnumRegister().RegisterEnum("EVENT_" +name);
 
 	f->Seek(offset +sizeof(mstudioevent_t));
 }

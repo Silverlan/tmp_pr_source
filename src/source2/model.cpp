@@ -786,7 +786,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 
 	if(s2Skeleton)
 	{
-		auto reference = Animation::Create();
+		auto reference = pragma::animation::Animation::Create();
 		mdl.AddAnimation("reference",reference); // Reference always has to be the first animation!
 
 		auto &s2Bones = s2Skeleton->GetBoneList();
@@ -1002,7 +1002,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 
 	for(auto &s2Anim : animations)
 	{
-		auto anim = ::Animation::Create();
+		auto anim = pragma::animation::Animation::Create();
 		anim->SetFPS(s2Anim->GetFPS());
 
 		// Find all of the bones used by this animation

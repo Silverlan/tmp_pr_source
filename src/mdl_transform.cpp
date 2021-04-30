@@ -21,7 +21,7 @@ static void build_node_matrix(Frame &frame,uint32_t id,const std::shared_ptr<Bon
 		build_node_matrix(frame,pair.first,pair.second,matrices);
 }
 
-static void transform_frame(Skeleton &skeleton,const std::shared_ptr<Animation> &anim,Frame &frame,bool bLocalize=true)
+static void transform_frame(Skeleton &skeleton,const std::shared_ptr<pragma::animation::Animation> &anim,Frame &frame,bool bLocalize=true)
 {
 	auto numBones = frame.GetBoneCount();
 	std::vector<Mat4> matrices(numBones);
@@ -47,13 +47,13 @@ static void transform_frame(Skeleton &skeleton,const std::shared_ptr<Animation> 
 		frame.Localize(*anim,skeleton);
 }
 
-static void transform_animation(Skeleton &skeleton,const std::shared_ptr<Animation> &anim,bool bLocalize=true)
+static void transform_animation(Skeleton &skeleton,const std::shared_ptr<pragma::animation::Animation> &anim,bool bLocalize=true)
 {
 	for(auto &frame : anim->GetFrames())
 		transform_frame(skeleton,anim,*frame,bLocalize);
 }
 
-void import::MdlInfo::ConvertTransforms(const std::vector<std::shared_ptr<ModelSubMesh>> &meshesSkip,Animation *reference)
+void import::MdlInfo::ConvertTransforms(const std::vector<std::shared_ptr<ModelSubMesh>> &meshesSkip,pragma::animation::Animation *reference)
 {
 	auto &skeleton = model.GetSkeleton();
 	uint32_t count = 0;

@@ -15,7 +15,7 @@
 #include "mdl_flexcontroller.h"
 #include "mdl_flexrule.h"
 #include "mdl_optimize.h"
-#include <pragma/model/animation/animation.h>
+#include <pragma/model/animation/animation.hpp>
 #include <pragma/pragma_module.hpp>
 #include <optional>
 
@@ -259,7 +259,7 @@ namespace import
 		std::vector<std::string> texturePaths;
 		std::vector<std::shared_ptr<mdl::Bone>> bones;
 		std::vector<mdl::AnimationDesc> animationDescs;
-		std::vector<std::shared_ptr<::Animation>> animations;
+		std::vector<std::shared_ptr<pragma::animation::Animation>> animations;
 		std::vector<mdl::Sequence> sequences;
 		std::vector<mdl::mstudioanimblock_t> animationBlocks;
 		std::vector<std::shared_ptr<mdl::Attachment>> attachments;
@@ -272,7 +272,7 @@ namespace import
 		std::vector<mdl::FlexControllerUi> flexControllerUis;
 		std::vector<std::vector<uint16_t>> skinFamilies;
 		std::vector<std::vector<uint32_t>> fixedLodVertexIndices;
-		void ConvertTransforms(const std::vector<std::shared_ptr<ModelSubMesh>> &meshesSkip,Animation *reference);
+		void ConvertTransforms(const std::vector<std::shared_ptr<ModelSubMesh>> &meshesSkip,pragma::animation::Animation *reference);
 		void GenerateReference(const std::vector<std::shared_ptr<import::mdl::Bone>> &bones);
 	};
 	bool load_mdl(

@@ -4,7 +4,7 @@
 #include "quaternion64.h"
 #include "quaternion48.h"
 #include "vector48.h"
-#include <pragma/model/animation/animation.h>
+#include <pragma/model/animation/animation.hpp>
 #pragma optimize("",off)
 import::mdl::AnimationDesc::AnimationDesc(int32_t idx,const VFilePtr &f)
 	: m_index(idx)
@@ -125,12 +125,12 @@ void import::mdl::AnimationDesc::AdjustPositionAndRotationByPiecewiseMovement(co
 	outRotation.z += vecAngle.y;
 }
 
-std::shared_ptr<::Animation> import::mdl::AnimationDesc::CalcAnimation(const import::MdlInfo &info)
+std::shared_ptr<pragma::animation::Animation> import::mdl::AnimationDesc::CalcAnimation(const import::MdlInfo &info)
 {
 	auto &stdAnimDesc = GetStudioDesc();
 	auto &header = info.header;
 	auto &bones = info.bones;
-	auto anim = ::Animation::Create();
+	auto anim = pragma::animation::Animation::Create();
 	anim->SetFPS(stdAnimDesc.fps);
 	anim->ReserveBoneIds(anim->GetBoneCount() +header.numbones);
 	for(auto i=decltype(header.numbones){0};i<header.numbones;++i)

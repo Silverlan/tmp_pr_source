@@ -735,9 +735,32 @@ bool import::load_mdl(
 	f->Seek(offset +header.flexcontrollerindex);
 	auto &flexControllers = mdlInfo.flexControllers;
 	flexControllers.reserve(header.numflexcontrollers);
+
+	// Some models have multiple flex controllers of the same name, this is not supported in Pragma!
+	// We'll remove the duplicates here.
+	std::vector<uint32_t> flexControllerTranslationTable;
+	flexControllerTranslationTable.resize(header.numflexcontrollers);
+
 	for(auto i=decltype(header.numflexcontrollers){0};i<header.numflexcontrollers;++i)
-		flexControllers.push_back(mdl::FlexController{f});
+	{
+		mdl::FlexController fc {f};
+		auto it = std::find_if(flexControllers.begin(),flexControllers.end(),[&fc](const import::mdl::FlexController &fcOther) {
+			return fc.GetName() == fcOther.GetName();
+		});
+		if(it == flexControllers.end())
+		{
+			flexControllers.push_back(fc);
+			flexControllerTranslationTable[i] = flexControllers.size() -1;
+			continue;
+		}
+		*it = fc;
+		flexControllerTranslationTable[i] = (it -flexControllers.begin());
+	}
 	//
+
+	auto getFlexController = [&flexControllers,&flexControllerTranslationTable](int32_t idx) -> import::mdl::FlexController& {
+		return flexControllers[flexControllerTranslationTable[idx]];
+	};
 
 	// Read flex rules
 	if(optLog)
@@ -799,7 +822,7 @@ bool import::load_mdl(
 						opStack.push({std::to_string(op.d.value),10u});
 						break;
 					case mdl::FlexRule::Operation::Type::Fetch:
-						opStack.push({flexControllers.at(op.d.index).GetName(),10u});
+						opStack.push({getFlexController(op.d.index).GetName(),10u});
 						break;
 					case mdl::FlexRule::Operation::Type::Fetch2:
 						opStack.push({"%" +flexDescs.at(op.d.index).GetName(),10u});
@@ -946,18 +969,18 @@ bool import::load_mdl(
 						break;
 					}
 					case mdl::FlexRule::Operation::Type::TwoWay0:
-						opStack.push({" (1 - (min(max(" +flexControllers.at(op.d.index).GetName() + " + 1, 0), 1)))",5});
+						opStack.push({" (1 - (min(max(" +getFlexController(op.d.index).GetName() + " + 1, 0), 1)))",5});
 						break;
 					case mdl::FlexRule::Operation::Type::TwoWay1:
-						opStack.push({" (min(max(" +flexControllers.at(op.d.index).GetName() + ", 0), 1))",5});
+						opStack.push({" (min(max(" +getFlexController(op.d.index).GetName() + ", 0), 1))",5});
 						break;
 					case mdl::FlexRule::Operation::Type::NWay:
 					{
-						auto &v = flexControllers.at(op.d.index).GetName();
+						auto &v = getFlexController(op.d.index).GetName();
 
 						auto &valueControllerIndex = opStack.top();
 						opStack.pop();
-						auto &flValue = flexControllers.at(ustring::to_int(valueControllerIndex.expression)).GetName();
+						auto &flValue = getFlexController(ustring::to_int(valueControllerIndex.expression)).GetName();
 
 						auto filterRampW = opStack.top();
 						opStack.pop();
@@ -1031,7 +1054,7 @@ bool import::load_mdl(
 					}
 					case mdl::FlexRule::Operation::Type::DMELowerEyelid:
 					{
-						auto &pCloseLidV = flexControllers.at(op.d.index);
+						auto &pCloseLidV = getFlexController(op.d.index);
 						auto range = pCloseLidV.GetRange();
 						auto flCloseLidVMin = std::to_string(range.first);
 						auto flCloseLidVMax = std::to_string(range.second);
@@ -1040,7 +1063,7 @@ bool import::load_mdl(
 						auto closeLidIndex = opStack.top();
 						opStack.pop();
 
-						auto &pCloseLid = flexControllers.at(ustring::to_int(closeLidIndex.expression));
+						auto &pCloseLid = getFlexController(ustring::to_int(closeLidIndex.expression));
 						range = pCloseLid.GetRange();
 						auto flCloseLidMin = std::to_string(range.first);
 						auto flCloseLidMax = std::to_string(range.second);
@@ -1050,7 +1073,7 @@ bool import::load_mdl(
 
 						auto eyeUpDownIndex = opStack.top();
 						opStack.pop();
-						auto &pEyeUpDown = flexControllers.at(ustring::to_int(eyeUpDownIndex.expression));
+						auto &pEyeUpDown = getFlexController(ustring::to_int(eyeUpDownIndex.expression));
 						range = pCloseLid.GetRange();
 						auto flEyeUpDownMin = std::to_string(range.first);
 						auto flEyeUpDownMax = std::to_string(range.second);
@@ -1061,7 +1084,7 @@ bool import::load_mdl(
 					}
 					case mdl::FlexRule::Operation::Type::DMEUpperEyelid:
 					{
-						auto &pCloseLidV = flexControllers.at(op.d.index);
+						auto &pCloseLidV = getFlexController(op.d.index);
 						auto range = pCloseLidV.GetRange();
 						auto flCloseLidVMin = std::to_string(range.first);
 						auto flCloseLidVMax = std::to_string(range.second);
@@ -1069,7 +1092,7 @@ bool import::load_mdl(
 
 						auto closeLidIndex = opStack.top();
 						opStack.pop();
-						auto &pCloseLid = flexControllers.at(ustring::to_int(closeLidIndex.expression));
+						auto &pCloseLid = getFlexController(ustring::to_int(closeLidIndex.expression));
 						range = pCloseLidV.GetRange();
 						auto flCloseLidMin = std::to_string(range.first);
 						auto flCloseLidMax = std::to_string(range.second);
@@ -1079,7 +1102,7 @@ bool import::load_mdl(
 
 						auto eyeUpDownIndex = opStack.top();
 						opStack.pop();
-						auto &pEyeUpDown = flexControllers.at(ustring::to_int(eyeUpDownIndex.expression));
+						auto &pEyeUpDown = getFlexController(ustring::to_int(eyeUpDownIndex.expression));
 						range = pCloseLidV.GetRange();
 						auto flEyeUpDownMin = std::to_string(range.first);
 						auto flEyeUpDownMax = std::to_string(range.second);
@@ -1235,7 +1258,7 @@ std::shared_ptr<Model> import::load_mdl(
 		mdl.AddBlendController(pp.GetName(),start,end,loop);
 	}
 
-	auto reference = Animation::Create();
+	auto reference = pragma::animation::Animation::Create();
 	mdl.AddAnimation("reference",reference); // Reference always has to be the first animation!
 	auto bHasReferenceAnim = false;
 
@@ -1243,7 +1266,7 @@ std::shared_ptr<Model> import::load_mdl(
 	animsWithSequences.reserve(mdlInfo.sequences.size());
 	std::unordered_map<uint32_t,uint32_t> seqAnims; // Map sequence to animation
 	std::vector<std::string> animNames(anims.size());
-	auto fApplyAnimFlags = [](Animation &anim,int32_t flags) {
+	auto fApplyAnimFlags = [](pragma::animation::Animation &anim,int32_t flags) {
 		if(flags &STUDIO_LOOPING)
 			anim.AddFlags(FAnim::Loop);
 		if(flags &STUDIO_AUTOPLAY)
@@ -1267,7 +1290,7 @@ std::shared_ptr<Model> import::load_mdl(
 			continue;
 		}
 		animNames.at(animIdx) = name;
-		std::shared_ptr<Animation> anim = nullptr;
+		std::shared_ptr<pragma::animation::Animation> anim = nullptr;
 		auto it = std::find(animsWithSequences.begin(),animsWithSequences.end(),static_cast<decltype(anims.size())>(animIdx));
 		if(it == animsWithSequences.end())
 		{
@@ -1277,14 +1300,14 @@ std::shared_ptr<Model> import::load_mdl(
 		else // There was already a sequence with this animation; Copy it
 		{
 			anim = anims[animIdx];
-			anim = Animation::Create(*anim);//,Animation::ShareMode::Frames);
+			anim = pragma::animation::Animation::Create(*anim);//,Animation::ShareMode::Frames);
 		}
 		
 		auto itAct = translateActivities.find(seq.GetActivityName());
 		if(itAct != translateActivities.end() && itAct->second != Activity::Invalid)
 			anim->SetActivity(itAct->second);
 		else
-			anim->SetActivity(static_cast<Activity>(Animation::GetActivityEnumRegister().RegisterEnum(activityName)));
+			anim->SetActivity(static_cast<Activity>(pragma::animation::Animation::GetActivityEnumRegister().RegisterEnum(activityName)));
 		anim->SetActivityWeight(seq.GetActivityWeight());
 		anim->SetFadeInTime(seq.GetFadeInTime());
 		anim->SetFadeOutTime(seq.GetFadeOutTime());
@@ -1497,12 +1520,12 @@ std::shared_ptr<Model> import::load_mdl(
 	//
 
 	// Flex Controllers
-	auto &flexControllers = mdl.GetFlexControllers();
-	flexControllers.resize(mdlInfo.flexControllers.size());
+	auto &fcs = mdl.GetFlexControllers();
+	fcs.resize(mdlInfo.flexControllers.size());
 	auto flexIdx = 0u;
 	for(auto &fc : mdlInfo.flexControllers)
 	{
-		auto &outFc = flexControllers.at(flexIdx++);
+		auto &outFc = fcs.at(flexIdx++);
 		outFc.name = fc.GetName();
 		auto range = fc.GetRange();
 		outFc.min = range.first;
@@ -1566,7 +1589,7 @@ std::shared_ptr<Model> import::load_mdl(
 	{
 		if(optLog)
 			(*optLog)<<"WARNING: No reference animation found; Attempting to generate reference from default bone transforms...\n";
-		reference = Animation::Create();
+		reference = pragma::animation::Animation::Create();
 		mdl.AddAnimation("reference",reference);
 	}
 	else
