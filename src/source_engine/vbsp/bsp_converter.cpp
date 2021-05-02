@@ -670,7 +670,8 @@ void pragma::asset::vbsp::BSPConverter::ConvertWorldGeometry()
 	m_outputWorldData->GetMaterialTable() = texStringData;
 
 	auto bspTree = BSPTree::Create(*m_bsp);
-	m_outputWorldData->SetBSPTree(*bspTree);
+	if(bspTree)
+		m_outputWorldData->SetBSPTree(*bspTree);
 }
 
 void pragma::asset::vbsp::BSPConverter::LoadFGDData()
