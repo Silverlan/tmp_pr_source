@@ -1380,142 +1380,146 @@ std::shared_ptr<Model> import::load_mdl(
 		auto animDstId = mdl.LookupAnimation(name);*/
 
 
-		if(animIndices.size() == 9 && pp.paramIdx.at(0) != -1 && pp.paramIdx.at(1) != -1)
+		if(animIndices.size() == 9)
 		{
-			auto ppMoveYIdx = pp.paramIdx.at(0);
-			auto ppMoveXIdx = pp.paramIdx.at(1);
-			// Seems to be always the same order?
-			auto sw = animIndices.at(0);
-			auto s = animIndices.at(1);
-			auto se = animIndices.at(2);
-			auto w = animIndices.at(3);
-			auto c = animIndices.at(4);
-			auto e = animIndices.at(5);
-			auto nw = animIndices.at(6);
-			auto n = animIndices.at(7);
-			auto ne = animIndices.at(8);
-
-			auto fPrint = [&mdl](const std::string &identifier,uint32_t i) {
-				Con::cout<<identifier<<": "<<mdl.GetAnimationName(i)<<Con::endl;
-			};
-			fPrint("sw",sw);
-			fPrint("s",s);
-			fPrint("se",se);
-			fPrint("w",w);
-			fPrint("c",c);
-			fPrint("e",e);
-			fPrint("nw",nw);
-			fPrint("n",n);
-			fPrint("ne",ne);
-
-			uint8_t iParam = 0;
-			auto bcIdx = pp.paramIdx.at(iParam);
-			auto start = pp.start.at(iParam);
-			auto end = pp.end.at(iParam);
-
-			auto &bc = mdlAnim->SetBlendController(bcIdx);
-			const auto flags = STUDIO_AUTOPLAY | STUDIO_DELTA;
-			auto bAutoplayGesture = (seq.GetFlags() &flags) == flags;
-			std::array<uint32_t,9> blends = {
-				s,se,e,ne,n,nw,w,sw,s
-				//s,sw,w,nw,n,ne,e,se,s
-				//n,ne,e,se,s,sw,w,nw,n
-			};
-			auto numBlends = blends.size(); // pp.numBlends
-			for(auto i=decltype(numBlends){0};i<numBlends;++i)
+			if(pp.paramIdx.at(0) != -1 && pp.paramIdx.at(1) != -1)
 			{
-				auto animId = blends.at(i);//animIndices.at(i);
-				//if(animId == -1)
-				//	continue;
-				//auto &name = animNames.at(animId);
-				//auto animDstId = mdl.LookupAnimation(name);
-				auto animDstId = animId;
-				//std::cout<<"Assigning animation "<<mdl.GetAnimationName(animDstId)<<std::endl;
-				if(animDstId == -1)
-					continue;
-				if(bAutoplayGesture == true)
-					mdl.GetAnimation(animDstId)->AddFlags(FAnim::Loop);
-				bc.transitions.push_back({});
-				auto &t = bc.transitions.back();
-				t.animation = animDstId;
-				auto f = (i /static_cast<float>(numBlends -1));
-				t.transition = umath::lerp(start,end,f);
-				Con::cout<<animDstId<<": "<<t.transition<<Con::endl;
-			}
-			bc.animationPostBlendTarget = c;
-			bc.animationPostBlendController = pp.paramIdx.at(1);
-		}
+				auto ppMoveYIdx = pp.paramIdx.at(0);
+				auto ppMoveXIdx = pp.paramIdx.at(1);
+				// Seems to be always the same order?
+				auto sw = animIndices.at(0);
+				auto s = animIndices.at(1);
+				auto se = animIndices.at(2);
+				auto w = animIndices.at(3);
+				auto c = animIndices.at(4);
+				auto e = animIndices.at(5);
+				auto nw = animIndices.at(6);
+				auto n = animIndices.at(7);
+				auto ne = animIndices.at(8);
 
+				auto fPrint = [&mdl](const std::string &identifier,uint32_t i) {
+					Con::cout<<identifier<<": "<<mdl.GetAnimationName(i)<<Con::endl;
+				};
+				fPrint("sw",sw);
+				fPrint("s",s);
+				fPrint("se",se);
+				fPrint("w",w);
+				fPrint("c",c);
+				fPrint("e",e);
+				fPrint("nw",nw);
+				fPrint("n",n);
+				fPrint("ne",ne);
+
+				uint8_t iParam = 0;
+				auto bcIdx = pp.paramIdx.at(iParam);
+				auto start = pp.start.at(iParam);
+				auto end = pp.end.at(iParam);
+
+				auto &bc = mdlAnim->SetBlendController(bcIdx);
+				const auto flags = STUDIO_AUTOPLAY | STUDIO_DELTA;
+				auto bAutoplayGesture = (seq.GetFlags() &flags) == flags;
+				std::array<uint32_t,9> blends = {
+					s,se,e,ne,n,nw,w,sw,s
+					//s,sw,w,nw,n,ne,e,se,s
+					//n,ne,e,se,s,sw,w,nw,n
+				};
+				auto numBlends = blends.size(); // pp.numBlends
+				for(auto i=decltype(numBlends){0};i<numBlends;++i)
+				{
+					auto animId = blends.at(i);//animIndices.at(i);
+					//if(animId == -1)
+					//	continue;
+					//auto &name = animNames.at(animId);
+					//auto animDstId = mdl.LookupAnimation(name);
+					auto animDstId = animId;
+					//std::cout<<"Assigning animation "<<mdl.GetAnimationName(animDstId)<<std::endl;
+					if(animDstId == -1)
+						continue;
+					if(bAutoplayGesture == true)
+						mdl.GetAnimation(animDstId)->AddFlags(FAnim::Loop);
+					bc.transitions.push_back({});
+					auto &t = bc.transitions.back();
+					t.animation = animDstId;
+					auto f = (i /static_cast<float>(numBlends -1));
+					t.transition = umath::lerp(start,end,f);
+					Con::cout<<animDstId<<": "<<t.transition<<Con::endl;
+				}
+				bc.animationPostBlendTarget = c;
+				bc.animationPostBlendController = pp.paramIdx.at(1);
+			}
+		}
+		else
+		{
 			// PP1: n, ne, e, se, s, sw, w, nw
 			// PP2: -1 -> c?
 
-#if 0
-		for(auto iParam=decltype(pp.paramIdx.size()){0u};iParam<pp.paramIdx.size();++iParam)
-		{
-			auto bcIdx = pp.paramIdx.at(iParam);
-			auto start = pp.start.at(iParam);
-			auto end = pp.end.at(iParam);
-			auto &bc = mdlAnim->SetBlendController(bcIdx);
-
-			const auto flags = STUDIO_AUTOPLAY | STUDIO_DELTA;
-			auto bAutoplayGesture = (seq.GetFlags() &flags) == flags;
-			// If this is an autoplay gesture, all animations associated with this one should probably loop
-
-			/*std::cout<<"Name: "<<seq.GetName()<<std::endl;
-			for(auto idx : animIndices)
+			for(auto iParam=decltype(pp.paramIdx.size()){0u};iParam<pp.paramIdx.size();++iParam)
 			{
-				if(idx == -1)
+				auto bcIdx = pp.paramIdx.at(iParam);
+				if(bcIdx == -1)
 					continue;
-				auto &animName = animDescs.at(idx).GetName();
-				auto &seqName = animNames.at(idx);
-				std::cout<<"\tChild anim "<<idx<<": "<<animName<<" ("<<seqName<<")"<<std::endl;
-			}*/
-			// Note: The first animation in the blend array seems to be the base animation, which we don't need since we already
-			// have that information. Instead, we'll just skip it altogether.
-			// TODO: I'm not sure if this works for all models, but it works for the Scout model from TF2, which has the following pose parameters:
-			/*
-			move_y:
-			[0]	488	short -> name = "run_PRIMARY"
-			[1]	481	short -> name = "a_runS_PRIMARY"
-			[2]	482	short -> name = "a_runSE_PRIMARY"
-			[3]	487	short -> name = "a_runW_PRIMARY"
-			[4]	480	short -> name = "a_runCenter_PRIMARY"
-			[5]	483	short -> name = "a_runE_PRIMARY"
-			[6]	486	short -> name = "a_runNW_PRIMARY"
-			[7]	485	short -> name = "a_runN_PRIMARY"
-			[8]	484	short -> name = "a_runNE_PRIMARY"
+				// TODO: Add support for multiple blend controllers
+				auto start = pp.start.at(iParam);
+				auto end = pp.end.at(iParam);
+				auto &bc = mdlAnim->SetBlendController(bcIdx);
 
-			move_x:
-			[0]	488	short -> name = "run_PRIMARY"
-			[1]	481	short -> name = "a_runS_PRIMARY"
-			[2]	482	short -> name = "a_runSE_PRIMARY"
-			[3]	487	short -> name = "a_runW_PRIMARY"
-			[4]	480	short -> name = "a_runCenter_PRIMARY"
-			[5]	483	short -> name = "a_runE_PRIMARY"
-			[6]	486	short -> name = "a_runNW_PRIMARY"
-			[7]	485	short -> name = "a_runN_PRIMARY"
-			[8]	484	short -> name = "a_runNE_PRIMARY"
-			*/
-			for(auto i=decltype(pp.numBlends){1};i<pp.numBlends;++i)
-			{
-				auto animId = animIndices.at(i);
-				if(animId == -1)
-					continue;
-				auto &name = animNames.at(animId);
-				auto animDstId = mdl.LookupAnimation(name);
-				//std::cout<<"Assigning animation "<<mdl.GetAnimationName(animDstId)<<std::endl;
-				if(animDstId == -1)
-					continue;
-				if(bAutoplayGesture == true)
-					mdl.GetAnimation(animDstId)->AddFlags(FAnim::Loop);
-				bc.transitions.push_back({});
-				auto &t = bc.transitions.back();
-				t.animation = animDstId;
-				auto f = (pp.numBlends > 2) ? ((i -1) /static_cast<float>(pp.numBlends -2)) : 0.f;
-				t.transition = umath::lerp(start,end,f);
+				const auto flags = STUDIO_AUTOPLAY | STUDIO_DELTA;
+				auto bAutoplayGesture = (seq.GetFlags() &flags) == flags;
+				// If this is an autoplay gesture, all animations associated with this one should probably loop
+
+				/*std::cout<<"Name: "<<seq.GetName()<<std::endl;
+				for(auto idx : animIndices)
+				{
+					if(idx == -1)
+						continue;
+					auto &animName = animDescs.at(idx).GetName();
+					auto &seqName = animNames.at(idx);
+					std::cout<<"\tChild anim "<<idx<<": "<<animName<<" ("<<seqName<<")"<<std::endl;
+				}*/
+				// Note: The first animation in the blend array seems to be the base animation, which we don't need since we already
+				// have that information. Instead, we'll just skip it altogether.
+				// TODO: I'm not sure if this works for all models, but it works for the Scout model from TF2, which has the following pose parameters:
+				/*
+				move_y:
+				[0]	488	short -> name = "run_PRIMARY"
+				[1]	481	short -> name = "a_runS_PRIMARY"
+				[2]	482	short -> name = "a_runSE_PRIMARY"
+				[3]	487	short -> name = "a_runW_PRIMARY"
+				[4]	480	short -> name = "a_runCenter_PRIMARY"
+				[5]	483	short -> name = "a_runE_PRIMARY"
+				[6]	486	short -> name = "a_runNW_PRIMARY"
+				[7]	485	short -> name = "a_runN_PRIMARY"
+				[8]	484	short -> name = "a_runNE_PRIMARY"
+
+				move_x:
+				[0]	488	short -> name = "run_PRIMARY"
+				[1]	481	short -> name = "a_runS_PRIMARY"
+				[2]	482	short -> name = "a_runSE_PRIMARY"
+				[3]	487	short -> name = "a_runW_PRIMARY"
+				[4]	480	short -> name = "a_runCenter_PRIMARY"
+				[5]	483	short -> name = "a_runE_PRIMARY"
+				[6]	486	short -> name = "a_runNW_PRIMARY"
+				[7]	485	short -> name = "a_runN_PRIMARY"
+				[8]	484	short -> name = "a_runNE_PRIMARY"
+				*/
+				for(auto i=decltype(pp.numBlends){0};i<pp.numBlends;++i)
+				{
+					auto animId = animIndices.at(i);
+					if(animId == -1)
+						continue;
+					//std::cout<<"Assigning animation "<<mdl.GetAnimationName(animId)<<std::endl;
+					if(animId == -1)
+						continue;
+					if(bAutoplayGesture == true)
+						mdl.GetAnimation(animId)->AddFlags(FAnim::Loop);
+					bc.transitions.push_back({});
+					auto &t = bc.transitions.back();
+					t.animation = animId;
+					auto f = (pp.numBlends > 1) ? (i /static_cast<float>(pp.numBlends -1)) : 0.f;
+					t.transition = umath::lerp(start,end,f);
+				}
 			}
 		}
-#endif
 	}
 	//
 

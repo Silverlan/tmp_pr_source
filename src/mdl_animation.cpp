@@ -251,8 +251,8 @@ std::shared_ptr<pragma::animation::Animation> import::mdl::AnimationDesc::CalcAn
 				flags |= FAnim::MoveX;
 			auto mvVec = move.vector;
 			umath::swap(mvVec.x,mvVec.y); // z (Up-axis in source) is unused
-			umath::negate(mvVec.x);
-			umath::negate(mvVec.y);
+			//umath::negate(mvVec.x);
+			//umath::negate(mvVec.y);
 			auto startVel = mvVec *move.v0;
 			auto endVel = mvVec *move.v1;
 			auto endFrame = move.endframe;

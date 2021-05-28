@@ -71,7 +71,7 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 	auto lightmapData = LoadLightmapData(m_nw,*m_bsp);
 	GenerateLightMapAtlas(*lightmapData,GetMapName());
 	ConvertWorldGeometry();
-
+	
 	struct ModelInfo
 	{
 		std::shared_ptr<Model> model = nullptr;
@@ -671,7 +671,10 @@ void pragma::asset::vbsp::BSPConverter::ConvertWorldGeometry()
 
 	auto bspTree = BSPTree::Create(*m_bsp);
 	if(bspTree)
+	{
+		bspTree->UpdateVisibilityBounds();
 		m_outputWorldData->SetBSPTree(*bspTree);
+	}
 }
 
 void pragma::asset::vbsp::BSPConverter::LoadFGDData()
