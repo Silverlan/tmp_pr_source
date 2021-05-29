@@ -64,6 +64,7 @@ static bool load_mounted_games()
 
 	std::vector<uarch::GameMountInfo> mountedGames {};
 	mountedGames.reserve(udm.GetChildCount());
+	std::unordered_map<std::string,int32_t> priorities;
 	for(auto pair : udm.ElIt())
 	{
 		mountedGames.push_back({});
@@ -72,8 +73,8 @@ static bool load_mounted_games()
 		
 		auto &child = pair.property;
 		child["localization_name"](gameInfo.localizationName);
-		gameInfo.enabled = true;
 		child["enabled"](gameInfo.enabled);
+		child["priority"](gameInfo.priority);
 
 		auto udmSteam = child["steam"];
 		if(udmSteam)
@@ -1017,6 +1018,15 @@ extern "C" {
 	}
 	PRAGMA_EXPORT void close_archive_manager() {uarch::close();}
 	PRAGMA_EXPORT void find_files(const std::string &path,std::vector<std::string> *outFiles,std::vector<std::string> *outDirectories) {uarch::find_files(path,outFiles,outDirectories);}
+	PRAGMA_EXPORT bool get_mounted_game_priority(const std::string &game,int32_t &outPriority)
+	{
+		auto prio = uarch::get_mounted_game_priority(game);
+		if(!prio.has_value())
+			return false;
+		outPriority = *prio;
+		return true;
+	}
+	PRAGMA_EXPORT void set_mounted_game_priority(const std::string &game,int32_t priority) {uarch::set_mounted_game_priority(game,priority);}
 	PRAGMA_EXPORT void open_archive_file(const std::string &path,VFilePtr &f,const std::optional<std::string> &gameIdentifier)
 	{
 		f = FileManager::OpenFile(path.c_str(),"rb");
