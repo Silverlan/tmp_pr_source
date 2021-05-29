@@ -498,7 +498,10 @@ bool import::load_mdl(
 	// TODO: I'm not sure about this. The scout from TF2 has the eye position (-75.8498688,0,0),
 	// So using it for the y-axis should be correct (unless it's relative to something else), but y and z
 	// may be wrong.
-	mdlInfo.model.SetEyeOffset({eyePos.z,-eyePos.x,eyePos.y});
+	//mdlInfo.model.SetEyeOffset({eyePos.z,-eyePos.x,eyePos.y});
+	// Update: zombie.mdl (HL Source Zombie) has the eyeposition (0,0,55), so the above is *not* correct
+	auto eyePosCorrected = Vector3{eyePos.y,-eyePos.x,eyePos.z};
+	mdlInfo.model.SetEyeOffset({eyePosCorrected.x,eyePosCorrected.z,-eyePosCorrected.y});
 
 	if(header.studiohdr2index != 0)
 	{
