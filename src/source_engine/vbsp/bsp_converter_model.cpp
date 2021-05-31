@@ -11,7 +11,6 @@
 #include <thread>
 #include <mutex>
 
-#pragma optimize("",off)
 std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityData &entData,LightmapData &lightMapInfo,const std::vector<MaterialHandle> &materials)
 {
 	auto &worldData = *m_outputWorldData;
@@ -910,5 +909,3 @@ void pragma::asset::vbsp::BSPConverter::OptimizeLevelGeometry(Model &mdl)
 
 	worldData.GetClusterMeshIndices() = std::move(meshesPerClusters);
 }
-
-#pragma optimize("",on)

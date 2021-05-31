@@ -20,7 +20,6 @@
 #include <pragma/engine.h>
 #include <udm.hpp>
 
-#pragma optimize("",off)
 extern DLLNETWORK Engine *engine;
 const decltype(pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR) pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR = Color{255,255,255,80};
 Vector3 pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(const Vector3 &inPos)
@@ -928,4 +927,3 @@ std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::G
 	}
 	return collisionMeshes;
 }
-#pragma optimize("",on)

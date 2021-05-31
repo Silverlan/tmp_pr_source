@@ -47,7 +47,6 @@ struct membuf : std::streambuf
     }
 };
 
-#pragma optimize("",off)
 static Vector3 nif_vector_to_engine_vector(const Niflib::Vector3 &v) {return {v.x,v.y,v.z};}
 static Quat nif_quat_to_engine_quat(const Niflib::Quaternion &q)
 {
@@ -813,4 +812,3 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 	mdl->Update(ModelUpdateFlags::All);
 	return true;
 }
-#pragma optimize("",on)

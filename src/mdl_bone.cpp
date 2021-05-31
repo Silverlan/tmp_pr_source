@@ -1,7 +1,6 @@
 #include "mdl_bone.h"
 #include "mdl_animation.h"
 
-#pragma optimize("",off)
 void import::mdl::Bone::BuildHierarchy(std::vector<std::shared_ptr<Bone>> &bones)
 {
 	for(auto &bone : bones)
@@ -106,4 +105,3 @@ void import::mdl::Bone::DebugPrint(const std::string &t)
 	std::cout<<t<<"Flags: "<<m_flags<<std::endl;
 	std::cout<<t<<"Surface Prop: "<<m_surfaceProp<<std::endl;
 }
-#pragma optimize("",on)

@@ -16,7 +16,6 @@
 #include <sharedutils/util_file.h>
 #include <util_fgd.hpp>
 
-#pragma optimize("",off)
 std::shared_ptr<pragma::asset::WorldData> source2::convert::convert_map(Game &game,std::shared_ptr<VFilePtrInternal> &f,const std::string &mapName)
 {
 	auto &nw = *game.GetNetworkState();
@@ -128,4 +127,3 @@ std::shared_ptr<pragma::asset::WorldData> source2::convert::convert_map(Game &ga
 	}
 	return world;
 }
-#pragma optimize("",on)

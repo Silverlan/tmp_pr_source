@@ -16,7 +16,6 @@
 #include <pragma/asset_types/world.hpp>
 #include <unordered_set>
 
-#pragma optimize("",off)
 // TODO: Remove this file
 #if 0
 std::shared_ptr<ModelSubMesh> source2::convert::convert_mesh(
@@ -51,4 +50,3 @@ std::shared_ptr<ModelSubMesh> source2::convert::convert_mesh(
 	return prSubMesh;
 }
 #endif
-#pragma optimize("",on)

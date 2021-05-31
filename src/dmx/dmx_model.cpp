@@ -41,7 +41,6 @@ extern "C" {
 	}
 };
 
-#pragma optimize("",off)
 bool import::load_dmx(NetworkState *nw,const VFilePtr &f,const std::function<std::shared_ptr<Model>()> &fCreateModel)
 {
 	auto vf = f;
@@ -509,4 +508,3 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 	}
 	return true;
 }
-#pragma optimize("",on)

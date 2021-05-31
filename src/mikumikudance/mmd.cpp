@@ -22,8 +22,6 @@
 
 extern DLLNETWORK Engine *engine;
 
-#pragma optimize("",off)
-
 static std::unordered_map<std::string,std::string> jpMorphNameToEnglish = {
 	// See https://www.deviantart.com/xoriu/art/MMD-Facial-Expressions-Chart-341504917
 	// Key is japanese name in UTF8
@@ -676,4 +674,3 @@ int import::import_vmd(lua_State *l)
 	t.push(l);
 	return 1;
 }
-#pragma optimize("",on)

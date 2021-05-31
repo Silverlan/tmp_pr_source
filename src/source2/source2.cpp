@@ -19,7 +19,6 @@
 #include <pragma/asset_types/world.hpp>
 #include <unordered_set>
 
-#pragma optimize("",off)
 Vector3 source2::impl::convert_source2_vector_to_pragma(const Vector3 &v)
 {
 	return Vector3{v.x,v.z,-v.y};
@@ -37,4 +36,3 @@ std::shared_ptr<Model> import::load_source2_mdl(
 		return nullptr;
 	return source2::convert::convert_model(game,*s2Mdl,resource.get());
 }
-#pragma optimize("",on)

@@ -30,7 +30,6 @@
 
 extern DLLNETWORK Engine *engine;
 
-#pragma optimize("",off)
 static const std::unordered_map<std::string,Activity> translateActivities = {
 	{"ACT_RESET",Activity::Invalid},
 	{"ACT_IDLE",Activity::Idle},
@@ -3550,5 +3549,3 @@ std::shared_ptr<Model> import::load_mdl(
 
 	return ptrMdl;
 }
-
-#pragma optimize("",on)

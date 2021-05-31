@@ -10,7 +10,6 @@
 #include <pragma/console/conout.h>
 #include <fsys/filesystem.h>
 
-#pragma optimize("",off)
 std::shared_ptr<source2::resource::Resource> source2::impl::load_resource(NetworkState &nw,std::shared_ptr<VFilePtrInternal> &f)
 {
 	return source2::load_resource(f,[&nw](const std::string &path) -> VFilePtr {
@@ -434,4 +433,3 @@ source2::impl::MeshData source2::impl::initialize_vertices(
 	}
 	return meshData;
 }
-#pragma optimize("",on)

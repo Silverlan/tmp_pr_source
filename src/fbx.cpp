@@ -12,7 +12,6 @@
 
 #pragma comment(lib,"libfbxsdk-md.lib")
 
-#pragma optimize("",off)
 static bool get_diffuse_file_name(FbxSurfaceMaterial *material,std::string &fileName)
 {
 	auto prop = material->FindProperty(FbxSurfaceMaterial::sDiffuse);
@@ -245,4 +244,3 @@ bool import::load_fbx(NetworkState *nw,Model &mdl,VFilePtr &f,std::vector<std::s
 	manager->Destroy();
 	return true;
 }
-#pragma optimize("",on)

@@ -6,7 +6,7 @@
 #include <util_texture_info.hpp>
 #include <util_image_buffer.hpp>
 #include <GuillotineBinPack.h>
-#pragma optimize("",off)
+
 bool pragma::asset::vbsp::BSPConverter::GenerateLightMapAtlas(LightmapData &lightmapInfo,const std::string &mapName)
 {
 	auto widthLightmapAtlas = lightmapInfo.atlasSize.x;
@@ -711,4 +711,3 @@ bool pragma::asset::vbsp::BSPConverter::ConvertLightmapToBSPLuxelData(NetworkSta
 	f = nullptr;
 	return true;
 }
-#pragma optimize("",on)

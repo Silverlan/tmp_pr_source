@@ -1,7 +1,6 @@
 #include "vtx.h"
 #include "mdl_optimize.h"
 
-#pragma optimize("",off)
 bool import::mdl::load_vtx(const VFilePtr &f,std::vector<vtx::VtxBodyPart> &bodyParts)
 {
 	auto offset = f->Tell();
@@ -195,4 +194,3 @@ bool import::mdl::load_vtx(const VFilePtr &f,std::vector<vtx::VtxBodyPart> &body
 	}
 	return true;
 }
-#pragma optimize("",on)

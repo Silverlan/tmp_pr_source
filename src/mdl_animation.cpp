@@ -5,7 +5,7 @@
 #include "quaternion48.h"
 #include "vector48.h"
 #include <pragma/model/animation/animation.hpp>
-#pragma optimize("",off)
+
 import::mdl::AnimationDesc::AnimationDesc(int32_t idx,const VFilePtr &f)
 	: m_index(idx)
 {
@@ -762,4 +762,3 @@ import::mdl::Animation::Animation(const std::vector<std::shared_ptr<mdl::Bone>> 
 {}
 
 const std::vector<std::shared_ptr<import::mdl::Animation::Data>> &import::mdl::Animation::GetData() const {return m_data;}
-#pragma optimize("",on)

@@ -36,8 +36,6 @@
 #include <VTFFile.h>
 #include <udm.hpp>
 
-#pragma optimize("",off)
-
 #pragma comment(lib,"libfbxsdk-md.lib")
 #pragma comment(lib,"lua51.lib")
 #pragma comment(lib,"luasystem.lib")
@@ -1238,4 +1236,3 @@ extern "C" {
 		return fCallback(mdl,pathRoot,mdlName);
 	}
 };
-#pragma optimize("",on)

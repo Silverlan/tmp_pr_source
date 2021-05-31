@@ -2,7 +2,6 @@
 #include "vvd.h"
 #include "mdl_optimize.h"
 
-#pragma optimize("",off)
 bool import::mdl::load_vvd(const VFilePtr &f,std::vector<Vertex> &verts,std::vector<VertexWeight> &vertWeights,std::vector<std::vector<uint32_t>> &fixedLodVertexIndices)
 {
 	auto offset = f->Tell();
@@ -69,4 +68,3 @@ bool import::mdl::load_vvd(const VFilePtr &f,std::vector<Vertex> &verts,std::vec
 	}
 	return true;
 }
-#pragma optimize("",on)

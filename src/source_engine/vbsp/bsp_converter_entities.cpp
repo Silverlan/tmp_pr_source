@@ -11,7 +11,6 @@
 const auto LIGHT_SOURCE_FLAGS = /*umath::to_integral(pragma::BaseEnvLightComponent::SpawnFlag::DontCastShadows) | */
 	umath::to_integral(pragma::BaseToggleComponent::SpawnFlags::StartOn) | umath::to_integral(pragma::BaseEnvLightComponent::SpawnFlag::DontCastShadows);
 
-#pragma optimize("",off)
 static std::string invert_x_coordinate(std::string str)
 {
 	if(str.empty())
@@ -141,17 +140,7 @@ void source_engine::translate_class(
 	auto bUseOrigin = itOrigin != inKeyValues.end();
 	auto bUseAngles = itAngles != inKeyValues.end();
 	// Translate entities
-	if(
-		ustring::compare(className,"info_player_start",false) == true ||
-		ustring::compare(className,"info_player_counterterrorist",false) == true ||
-		ustring::compare(className,"info_player_terrorist",false) == true ||
-		ustring::compare(className,"info_player_deathmatch",false) == true ||
-		ustring::compare(className,"info_player_teamspawn",false) == true
-		)
-	{
-		className = "game_player_spawn";
-	}
-	else if(ustring::compare(className,"prop_physics_multiplayer",false) || ustring::compare(className,"prop_static",false) || ustring::compare(className,"prop_physics",false))
+	if(ustring::compare(className,"prop_physics_multiplayer",false) || ustring::compare(className,"prop_static",false) || ustring::compare(className,"prop_physics",false))
 	{
 		// TODO: Also see staticPropLumps for static props!
 		auto bStatic = ustring::compare(className,"prop_static",false);
@@ -626,4 +615,3 @@ void source_engine::translate_entity_data(
 	entData.SetFlags(flags);
 	entData.GetKeyValues() = keyValues;
 }
-#pragma optimize("",on)
