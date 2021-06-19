@@ -609,7 +609,8 @@ bool pragma::asset::vbsp::BSPConverter::ConvertLightmapToBSPLuxelData(NetworkSta
 		return false;
 	}
 	bsp::ResultCode code;
-	auto bsp = bsp::File::Open(VFilePtr{f},code);
+	VFilePtr fp{f};
+	auto bsp = bsp::File::Open(fp,code);
 	//auto *pLumpInfoLDR = bsp ? bsp->GetLumpHeaderInfo(bsp::LUMP_ID_LIGHTING) : nullptr;
 	auto *pLumpInfoHDR = bsp ? bsp->GetLumpHeaderInfo(bsp::LUMP_ID_LIGHTING_HDR) : nullptr;
 	if(pLumpInfoHDR == nullptr)

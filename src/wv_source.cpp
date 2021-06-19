@@ -180,7 +180,7 @@ uint32_t import::util::add_texture(NetworkState &nw,Model &mdl,const std::string
 		for(auto &path : mdl.GetMetaInfo().texturePaths)
 		{
 			auto texPath = path +fname;
-			if(pragma::asset::exists(nw,texPath,pragma::asset::Type::Material))
+			if(pragma::asset::exists(texPath,pragma::asset::Type::Material))
 			{
 				foundPath = texPath;
 				break;
@@ -219,7 +219,7 @@ void import::util::port_model_texture_assets(NetworkState &nw,Model &mdl)
 		for(auto &lookupPath : mdl.GetTexturePaths())
 		{
 			auto matPath = lookupPath +matName;
-			if(pragma::asset::exists(nw,matPath,pragma::asset::Type::Material) || FileManager::Exists("materials/" +matPath +".vmt") || FileManager::Exists("materials/" +matPath +".vmat_c"))
+			if(pragma::asset::exists(matPath,pragma::asset::Type::Material) || FileManager::Exists("materials/" +matPath +".vmt") || FileManager::Exists("materials/" +matPath +".vmat_c"))
 				break;
 			if(nw.PortMaterial(matPath +"." +std::string{pragma::asset::FORMAT_MATERIAL_ASCII},nullptr))
 				break;

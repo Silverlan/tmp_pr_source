@@ -208,7 +208,7 @@ static Vector4 vertex_attr_value_to_vec4(source2::resource::DXGI_FORMAT format,c
 	return result;
 }
 
-static Vector4i vertex_attr_value_to_ivec4(source2::resource::DXGI_FORMAT format,const uint8_t *data,const Vector4i &default={})
+static Vector4i vertex_attr_value_to_ivec4(source2::resource::DXGI_FORMAT format,const uint8_t *data,const Vector4i &def={})
 {
 	uint8_t numChannels = 0;
 	auto baseFormat = source2::resource::DXGI_FORMAT::UNKNOWN;
@@ -302,7 +302,7 @@ static Vector4i vertex_attr_value_to_ivec4(source2::resource::DXGI_FORMAT format
 		throw std::invalid_argument{"Unknown attribute format " +std::to_string(umath::to_integral(format))};
 	}
 
-	auto result = default;
+	auto result = def;
 	for(uint8_t i=0;i<numChannels;++i)
 	{
 		switch(baseFormat)

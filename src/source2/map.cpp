@@ -94,7 +94,7 @@ std::shared_ptr<pragma::asset::WorldData> source2::convert::convert_map(Game &ga
 	
 	for(auto &ent : scene->GetEntities())
 	{
-		auto &keyValues = ent->GetKeyValues();
+		auto keyValues = ent->GetKeyValues();
 		auto itClassName = keyValues.find("classname");
 		if(itClassName == keyValues.end())
 			continue;

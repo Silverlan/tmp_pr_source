@@ -217,7 +217,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 					auto &elRef = *attr->GetElement();
 					if(elRef.expired())
 						continue;
-					auto &el = elRef.lock();
+					auto el = elRef.lock();
 					if(el->type != "DmeParticleSystemDefinition")
 						continue;
 					auto it = particles.insert(std::make_pair(el->name,CParticleSystemData{}));
@@ -235,7 +235,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								auto &elRef = *attr->GetElement();
 								if(elRef.expired())
 									continue;
-								auto &el = elRef.lock();
+								auto el = elRef.lock();
 								if(el->type != "DmeParticleOperator")
 									continue;
 								auto &opName = el->name;
@@ -289,7 +289,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								auto &elRef = *attr->GetElement();
 								if(elRef.expired())
 									continue;
-								auto &el = elRef.lock();
+								auto el = elRef.lock();
 								if(el->type != "DmeParticleOperator")
 									continue;
 								auto &opName = el->name;
@@ -305,7 +305,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								auto &elRef = *attr->GetElement();
 								if(elRef.expired())
 									continue;
-								auto &el = elRef.lock();
+								auto el = elRef.lock();
 								if(el->type != "DmeParticleOperator")
 									continue;
 
@@ -319,7 +319,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								auto &elRef = *attr->GetElement();
 								if(elRef.expired())
 									continue;
-								auto &el = elRef.lock();
+								auto el = elRef.lock();
 								if(el->type != "DmeParticleChild")
 									continue;
 

@@ -602,7 +602,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 			}
 			if(texSet == nullptr)
 				continue;
-			auto &textures = texSet->GetTextures();
+			auto textures = texSet->GetTextures();
 			// Note: This seems to work for Fallout: NV assets? TODO: Test it with other games
 			if(textures.size() > 0)
 			{
