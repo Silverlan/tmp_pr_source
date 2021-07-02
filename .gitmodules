@@ -13,3 +13,6 @@
 [submodule "third_party/qhull"]
 	path = third_party/qhull
 	url = https://github.com/qhull/qhull.git
+[submodule "external_libs/util_fgd"]
+	path = external_libs/util_fgd
+	url = https://github.com/Silverlan/util_fgd.git
