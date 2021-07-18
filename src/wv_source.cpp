@@ -474,15 +474,15 @@ static bool load_smd(NetworkState *nw,const std::string &name,Model &mdl,SMDMode
 				for(uint8_t i=0;i<3;++i)
 				{
 					auto &triVert = tri.vertices[i];
-					auto it = std::find_if(verts.begin(),verts.end(),[&triVert](const Vertex &v) {
-						return (umath::abs(triVert.position.x -v.position.x) <= VERTEX_EPSILON && umath::abs(triVert.position.y -v.position.y) <= VERTEX_EPSILON && umath::abs(triVert.position.z -v.position.z) <= VERTEX_EPSILON) ? true : false;
+					auto it = std::find_if(verts.begin(),verts.end(),[&triVert](const umath::Vertex &v) {
+						return (umath::abs(triVert.position.x -v.position.x) <= umath::VERTEX_EPSILON && umath::abs(triVert.position.y -v.position.y) <= umath::VERTEX_EPSILON && umath::abs(triVert.position.z -v.position.z) <= umath::VERTEX_EPSILON) ? true : false;
 						});
 					if(it == verts.end())
 					{
 						auto vertId = subMesh->AddVertex({triVert.position,{triVert.uv.x,-triVert.uv.y},triVert.normal});
 						triangleIndices[i] = subMesh->GetVertexCount() -1;
 
-						VertexWeight w {};
+						umath::VertexWeight w {};
 						uint8_t c = 0;
 						for(auto &pair : triVert.weights)
 						{

@@ -5,13 +5,13 @@
 #include <source2/resource.hpp>
 #include <source2/resource_data.hpp>
 #include <source2/resource_edit_info.hpp>
-#include <pragma/model/vertex.h>
 #include <pragma/model/model.h>
 #include <pragma/model/modelmesh.h>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/game/game_resources.hpp>
 #include <pragma/game/game.h>
 #include <pragma/asset_types/world.hpp>
+#include <mathutil/vertex.hpp>
 #include <unordered_set>
 #include <sharedutils/util_file.h>
 #include <util_fgd.hpp>

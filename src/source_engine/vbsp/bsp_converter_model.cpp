@@ -24,7 +24,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 	{
 		MaterialIndex materialIndex = 0u;
 		uint32_t faceIndex = 0u;
-		std::array<Vertex,3u> vertices;
+		std::array<umath::Vertex,3u> vertices;
 		std::array<Vector2,3u> lightMapUvs;
 		std::optional<std::array<float,3>> alphas = {};
 	};
@@ -249,9 +249,9 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 						auto &triInfo0 = bspTriangles.back();
 						triInfo0.faceIndex = faceIndex;
 						triInfo0.materialIndex = texId;
-						triInfo0.vertices.at(0) = Vertex{p0.position +p0.offset,fCalculateUv(p0.position),normal};
-						triInfo0.vertices.at(1) = Vertex{p1.position +p1.offset,fCalculateUv(p1.position),normal};
-						triInfo0.vertices.at(2) = Vertex{p2.position +p2.offset,fCalculateUv(p2.position),normal};
+						triInfo0.vertices.at(0) = umath::Vertex{p0.position +p0.offset,fCalculateUv(p0.position),normal};
+						triInfo0.vertices.at(1) = umath::Vertex{p1.position +p1.offset,fCalculateUv(p1.position),normal};
+						triInfo0.vertices.at(2) = umath::Vertex{p2.position +p2.offset,fCalculateUv(p2.position),normal};
 						triInfo0.alphas = {
 							umath::clamp(p0.alpha /255.f,0.f,1.f),
 							umath::clamp(p1.alpha /255.f,0.f,1.f),
@@ -276,9 +276,9 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 						auto &triInfo1 = bspTriangles.back();
 						triInfo1.faceIndex = faceIndex;
 						triInfo1.materialIndex = texId;
-						triInfo1.vertices.at(0) = Vertex{p1.position +p1.offset,fCalculateUv(p1.position),normal};
-						triInfo1.vertices.at(1) = Vertex{p3.position +p3.offset,fCalculateUv(p3.position),normal};
-						triInfo1.vertices.at(2) = Vertex{p2.position +p2.offset,fCalculateUv(p2.position),normal};
+						triInfo1.vertices.at(0) = umath::Vertex{p1.position +p1.offset,fCalculateUv(p1.position),normal};
+						triInfo1.vertices.at(1) = umath::Vertex{p3.position +p3.offset,fCalculateUv(p3.position),normal};
+						triInfo1.vertices.at(2) = umath::Vertex{p2.position +p2.offset,fCalculateUv(p2.position),normal};
 						triInfo1.alphas = {
 							umath::clamp(p1.alpha /255.f,0.f,1.f),
 							umath::clamp(p3.alpha /255.f,0.f,1.f),
@@ -347,7 +347,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 					for(auto &pos : faceVerts)
 					{
 						auto vertUv = fCalculateUv(pos);
-						outVerts.at(localVertIdx) = Vertex{pos,vertUv,faceNormal};
+						outVerts.at(localVertIdx) = umath::Vertex{pos,vertUv,faceNormal};
 
 						outLightMapUvs.at(localVertIdx) = fCalcLightmapUv(pos);
 						++localVertIdx;
@@ -515,7 +515,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 			meshTris.push_back(numVerts +1u);
 			meshTris.push_back(numVerts +2u);
 
-			auto cv = [](Vertex &v) -> Vertex& {
+			auto cv = [](umath::Vertex &v) -> umath::Vertex& {
 				//v.position.x = -v.position.x;
 				return v;
 			};

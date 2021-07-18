@@ -2,7 +2,6 @@
 #include "mikumikudance/mmd.hpp"
 #include <mathutil/uvec.h>
 #include <pragma/game/game.h>
-#include <pragma/model/vertex.h>
 #include <pragma/lua/ldefinitions.h>
 #include <pragma/lua/libraries/lfile.h>
 #include <pragma/model/modelmesh.h>
@@ -13,6 +12,7 @@
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_path.hpp>
+#include <mathutil/vertex.hpp>
 #include <fsys/filesystem.h>
 #include <util_mmd.hpp>
 #include <luainterface.hpp>

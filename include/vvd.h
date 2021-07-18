@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <mathutil/uvec.h>
-#include <pragma/model/vertex.h>
+#include <mathutil/vertex.hpp>
 #include "mdl_shared.h"
 
 #pragma pack(push,1)
@@ -49,7 +49,7 @@ namespace import
 				int32_t numVertexes;
 			};
 		};
-		bool load_vvd(const VFilePtr &f,std::vector<Vertex> &verts,std::vector<VertexWeight> &vertWeights,std::vector<std::vector<uint32_t>> &fixedLodVertexIndices);
+		bool load_vvd(const VFilePtr &f,std::vector<umath::Vertex> &verts,std::vector<umath::VertexWeight> &vertWeights,std::vector<std::vector<uint32_t>> &fixedLodVertexIndices);
 	};
 };
 #pragma pack(pop)

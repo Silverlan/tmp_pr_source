@@ -1681,8 +1681,8 @@ std::shared_ptr<Model> import::load_mdl(
 	//auto &verts = subMesh->GetVertices();
 	//auto &vertWeights = subMesh->GetVertexWeights();
 
-	std::vector<Vertex> vvdVerts;
-	std::vector<VertexWeight> vvdVertWeights;
+	std::vector<umath::Vertex> vvdVerts;
+	std::vector<umath::VertexWeight> vvdVertWeights;
 	it = files.find("vvd");
 	if(it != files.end())
 	{

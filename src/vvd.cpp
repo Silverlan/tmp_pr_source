@@ -2,7 +2,7 @@
 #include "vvd.h"
 #include "mdl_optimize.h"
 
-bool import::mdl::load_vvd(const VFilePtr &f,std::vector<Vertex> &verts,std::vector<VertexWeight> &vertWeights,std::vector<std::vector<uint32_t>> &fixedLodVertexIndices)
+bool import::mdl::load_vvd(const VFilePtr &f,std::vector<umath::Vertex> &verts,std::vector<umath::VertexWeight> &vertWeights,std::vector<std::vector<uint32_t>> &fixedLodVertexIndices)
 {
 	auto offset = f->Tell();
 	auto header = f->Read<vvd::vertexFileHeader_t>();
@@ -26,10 +26,10 @@ bool import::mdl::load_vvd(const VFilePtr &f,std::vector<Vertex> &verts,std::vec
 				n = uvec::FORWARD;
 			else
 				n /= l;
-			verts.push_back(Vertex{stdVert.m_vecPosition,stdVert.m_vecTexCoord,n});
+			verts.push_back(umath::Vertex{stdVert.m_vecPosition,stdVert.m_vecTexCoord,n});
 			if(uvec::length(stdVert.m_vecNormal) < 0.8)
 				std::cout<<"";
-			vertWeights.push_back(VertexWeight{{-1,-1,-1,-1},{}});
+			vertWeights.push_back(umath::VertexWeight{{-1,-1,-1,-1},{}});
 			auto &weight = vertWeights.back();
 			auto weightSum = 0.f;
 			for(auto j=decltype(stdVert.m_BoneWeights.numbones){0};j<umath::min(stdVert.m_BoneWeights.numbones,static_cast<byte>(4));++j)

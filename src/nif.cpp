@@ -686,7 +686,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 		{
 			auto &v = verts.at(i);
 			auto *uv = (i < texCoords.size()) ? &texCoords.at(i) : nullptr;
-			Vertex vert {};
+			umath::Vertex vert {};
 			vert.position = nif_vector_to_engine_vector(v) +offset;
 			vert.normal = (i < normals.size()) ? nif_vector_to_engine_vector(normals.at(i)) : Vector3{};
 			if(uv)
@@ -743,7 +743,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 		auto &subMesh = mesh->GetSubMeshes().front();
 		auto &meshVertWeights = subMesh->GetVertexWeights();
 		auto vertCount = subMesh->GetVertexCount();
-		meshVertWeights.resize(vertCount,VertexWeight(Vector4i(-1,-1,-1,-1),Vector4(0.f,0.f,0.f,0.f)));
+		meshVertWeights.resize(vertCount,umath::VertexWeight(Vector4i(-1,-1,-1,-1),Vector4(0.f,0.f,0.f,0.f)));
 		std::vector<uint8_t> vertWeightCount(vertCount,0);
 		std::vector<Niflib::Ref<Niflib::NiNode>> bones {};
 		if(o.bsGeometry == true)

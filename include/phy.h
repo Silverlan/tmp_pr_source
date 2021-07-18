@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <mathutil/uvec.h>
-#include <pragma/model/vertex.h>
+#include <mathutil/vertex.hpp>
 #include <array>
 #include <unordered_map>
 #include <fsys/filesystem.h>

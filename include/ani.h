@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <mathutil/uvec.h>
-#include <pragma/model/vertex.h>
 #include "mdl_animation.h"
 
 #pragma pack(push,1)

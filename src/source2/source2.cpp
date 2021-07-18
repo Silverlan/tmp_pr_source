@@ -10,13 +10,13 @@
 #include <util_archive.hpp>
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_path.hpp>
-#include <pragma/model/vertex.h>
 #include <pragma/model/model.h>
 #include <pragma/model/modelmesh.h>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/game/game_resources.hpp>
 #include <pragma/game/game_resources.hpp>
 #include <pragma/asset_types/world.hpp>
+#include <mathutil/vertex.hpp>
 #include <unordered_set>
 
 Vector3 source2::impl::convert_source2_vector_to_pragma(const Vector3 &v)

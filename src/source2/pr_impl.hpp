@@ -5,7 +5,7 @@
 #include <functional>
 #include <unordered_map>
 #include <source2/resource_data.hpp>
-#include <pragma/model/vertex.h>
+#include <mathutil/vertex.hpp>
 
 class ModelSubMesh;
 class VFilePtrInternal;
@@ -16,8 +16,8 @@ namespace source2
 	{
 		struct MeshData
 		{
-			std::vector<Vertex> verts;
-			std::vector<VertexWeight> vertWeights;
+			std::vector<umath::Vertex> verts;
+			std::vector<umath::VertexWeight> vertWeights;
 			std::vector<Vector2> lightmapUvs;
 		};
 		MeshData initialize_vertices(
