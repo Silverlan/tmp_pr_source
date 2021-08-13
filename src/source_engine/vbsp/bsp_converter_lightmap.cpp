@@ -15,7 +15,7 @@ bool pragma::asset::vbsp::BSPConverter::GenerateLightMapAtlas(LightmapData &ligh
 	auto &lightMapData = lightmapInfo.luxelData;
 	if(lightMapData.empty())
 		return false;
-	auto lightMapAtlas = uimg::ImageBuffer::Create(widthLightmapAtlas,heightLightmapAtlas,uimg::ImageBuffer::Format::RGBA16);
+	auto lightMapAtlas = uimg::ImageBuffer::Create(widthLightmapAtlas,heightLightmapAtlas,uimg::Format::RGBA16);
 	auto &rects = lightmapInfo.lightmapAtlas;
 	if(rects.size() != lightmapInfo.faceInfos.size())
 		; // TODO: Print Warning: LIGHT MAP ATLAS TO SMALL TO ENCOMPASS ALL LIGHTMAPS

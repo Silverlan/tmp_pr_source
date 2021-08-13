@@ -355,11 +355,11 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 				auto outTexName = ufile::get_file_from_filename(texFilePath);
 				ufile::remove_extension_from_filename(outTexName);
 				auto absPath = matPathAbs +outTexName;
-				uimg::TextureInfo texInfo {};
-				texInfo.containerFormat = uimg::TextureInfo::ContainerFormat::DDS;
+				uimg::TextureSaveInfo texSaveInfo {};
+				texSaveInfo.texInfo.containerFormat = uimg::TextureInfo::ContainerFormat::DDS;
 				if(pragma::asset::exists(matPath +outTexName,pragma::asset::Type::Texture) == false)
 				{
-					auto result = uimg::save_texture(absPath,*imgBuf,texInfo,false,[&matPathAbs](const std::string &errMsg) {
+					auto result = uimg::save_texture(absPath,*imgBuf,texSaveInfo,[&matPathAbs](const std::string &errMsg) {
 						Con::cwar<<"WARNING: Unable to save texture '"<<matPathAbs<<"': "<<errMsg<<Con::endl;
 					},false /* absFileName */);
 					Con::cout<<"Result: "<<result<<Con::endl;

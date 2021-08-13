@@ -846,21 +846,25 @@ extern "C" {
 			if(texInfoInputFormat.has_value() == false || texInfoOutputFormat.has_value() == false)
 				return false;
 
-			uimg::TextureInfo texInfo {};
+			uimg::TextureSaveInfo texSaveInfo {};
+			auto &texInfo = texSaveInfo.texInfo;
 			texInfo.inputFormat = *texInfoInputFormat;
 			texInfo.outputFormat = *texInfoOutputFormat;
 			if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::NormalMap))
 				texInfo.SetNormalMap();
 			if(umath::is_flag_set(vtfTexInfo.flags,pragma::asset::VtfInfo::Flags::Srgb))
 				texInfo.flags |= uimg::TextureInfo::Flags::SRGB;
-
+			texSaveInfo.width = width;
+			texSaveInfo.height = height;
+			texSaveInfo.szPerPixel = szPerPixel;
+			texSaveInfo.numLayers = numLayers;
+			texSaveInfo.numMipmaps = numMipmaps;
+			texSaveInfo.cubemap = cubemap;
 			auto result = uimg::compress_texture(
 				compressedData,[&pfGetImgData](uint32_t level,uint32_t mip,std::function<void()> &deleter) -> const uint8_t* {
 					deleter = nullptr;
 					return pfGetImgData(level,mip);
-				},width,height,szPerPixel,
-				numLayers,numMipmaps,cubemap,
-				texInfo,errorHandler
+				},texSaveInfo,errorHandler
 			);
 			if(result == false)
 				return false;
@@ -982,8 +986,9 @@ extern "C" {
 				return 1;
 			})},
 			{"extract_asset_files",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
-				auto tFiles = luabind::from_stack(l,1);
-				auto files = Lua::table_to_map<std::string,std::string>(l,tFiles,1);
+				auto tFiles = luabind::object{l,luabind::from_stack(l,1)};
+				std::unordered_map<std::string,std::string> files;
+				Lua::table_to_map<std::string,std::string>(l,tFiles,1,files);
 				std::string game = Lua::CheckString(l,2);
 				std::string err;
 				auto result = source_engine::extract_asset_files(files,game,err);

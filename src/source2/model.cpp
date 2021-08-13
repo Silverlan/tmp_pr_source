@@ -564,9 +564,9 @@ static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueColl
 		morphDstHeight = hRectDst;
 
 
-		imgBuf = uimg::ImageBuffer::Create(atlasData.data(),atlasWidth,atlasHeight,uimg::ImageBuffer::Format::RGBA8);
+		imgBuf = uimg::ImageBuffer::Create(atlasData.data(),atlasWidth,atlasHeight,uimg::Format::RGBA8);
 #if 0
-		auto imgBuf = uimg::ImageBuffer::Create(width,height,uimg::ImageBuffer::Format::RGBA8);
+		auto imgBuf = uimg::ImageBuffer::Create(width,height,uimg::Format::RGBA8);
 		imgBuf->Clear(Color::White.ToVector4());
 		std::vector<bool> dstImageData;
 		dstImageData.resize(width *height,false);
@@ -613,7 +613,7 @@ static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueColl
 			auto &prBundleData = prMorphData[name];
 			std::vector<std::shared_ptr<uimg::ImageBuffer>> rects {};
 
-			auto dstImage = uimg::ImageBuffer::Create(morphDstWidth,morphDstHeight,uimg::ImageBuffer::Format::RGBA32);
+			auto dstImage = uimg::ImageBuffer::Create(morphDstWidth,morphDstHeight,uimg::Format::RGBA32);
 			dstImage->Clear(Vector4{0.f,0.f,0.f,0.f});
 			for(auto *morphRectData : morphData->FindArrayValues<source2::resource::IKeyValueCollection*>("m_morphRectDatas"))
 			{
@@ -667,11 +667,11 @@ static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueColl
 						{
 							auto pxView = imgBuf->GetPixelView(xRectSrc +x,yRectSrc +y);
 							atlasRectData.push_back({
-								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Red),
-								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Green),
-								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Blue),
-								pxView.GetLDRValue(uimg::ImageBuffer::Channel::Alpha)
-								});
+								pxView.GetLDRValue(uimg::Channel::Red),
+								pxView.GetLDRValue(uimg::Channel::Green),
+								pxView.GetLDRValue(uimg::Channel::Blue),
+								pxView.GetLDRValue(uimg::Channel::Alpha)
+							});
 						}
 					}
 
@@ -1069,9 +1069,9 @@ std::shared_ptr<Model> source2::convert::convert_model(
 			auto width = morphData->FindValue<int64_t>("m_nWidth",0);
 			auto height = morphData->FindValue<int64_t>("m_nHeight",0);
 
-			auto imgBuf = uimg::ImageBuffer::Create(atlasData.data(),atlasWidth,atlasHeight,uimg::ImageBuffer::Format::RGBA8);
+			auto imgBuf = uimg::ImageBuffer::Create(atlasData.data(),atlasWidth,atlasHeight,uimg::Format::RGBA8);
 #if 0
-			auto imgBuf = uimg::ImageBuffer::Create(width,height,uimg::ImageBuffer::Format::RGBA8);
+			auto imgBuf = uimg::ImageBuffer::Create(width,height,uimg::Format::RGBA8);
 			imgBuf->Clear(Color::White.ToVector4());
 			std::vector<bool> dstImageData;
 			dstImageData.resize(width *height,false);
