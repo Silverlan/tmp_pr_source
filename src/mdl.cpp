@@ -3536,6 +3536,18 @@ std::shared_ptr<Model> import::load_mdl(
 		}
 	}
 
+	// Optimize meshes
+	if(optLog)
+		(*optLog)<<"Optimizing meshes!\n";
+	for(auto &meshGroup : mdl.GetMeshGroups())
+	{
+		for(auto &mesh : meshGroup->GetMeshes())
+		{
+			for(auto &subMesh : mesh->GetSubMeshes())
+				subMesh->Optimize();
+		}
+	}
+
 	//mdl.Update(ModelUpdateFlags::AllData);
 	//auto rot = uquat::create(EulerAngles(0.f,90.f,0.f));
 	//mdl.Rotate(rot);
