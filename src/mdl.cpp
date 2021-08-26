@@ -27,6 +27,8 @@
 #include <pragma/model/animation/vertex_animation.hpp>
 #include <pragma/game/game_limits.h>
 #include <mathutil/transform.hpp>
+#include <panima/skeleton.hpp>
+#include <panima/bone.hpp>
 
 extern DLLNETWORK Engine *engine;
 
@@ -1244,7 +1246,7 @@ std::shared_ptr<Model> import::load_mdl(
 	auto &bones = mdlInfo.bones;
 	for(auto &bone : bones)
 	{
-		auto *mdlBone = new Bone();
+		auto *mdlBone = new panima::Bone();
 		mdlBone->name = bone->GetName();
 		skeleton.AddBone(mdlBone);
 	}
@@ -3537,7 +3539,7 @@ std::shared_ptr<Model> import::load_mdl(
 	}
 
 	// Optimize meshes
-	if(optLog)
+	/*if(optLog)
 		(*optLog)<<"Optimizing meshes!\n";
 	for(auto &meshGroup : mdl.GetMeshGroups())
 	{
@@ -3546,7 +3548,7 @@ std::shared_ptr<Model> import::load_mdl(
 			for(auto &subMesh : mesh->GetSubMeshes())
 				subMesh->Optimize();
 		}
-	}
+	}*/
 
 	//mdl.Update(ModelUpdateFlags::AllData);
 	//auto rot = uquat::create(EulerAngles(0.f,90.f,0.f));

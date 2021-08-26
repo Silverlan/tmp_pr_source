@@ -23,6 +23,8 @@
 #include <util_image_buffer.hpp>
 #include <util_image.hpp>
 #include <unordered_set>
+#include <panima/skeleton.hpp>
+#include <panima/bone.hpp>
 
 static uint32_t add_material(NetworkState &nw,Model &mdl,const std::string &mat,std::optional<uint32_t> skinId={})
 {
@@ -798,12 +800,12 @@ std::shared_ptr<Model> source2::convert::convert_model(
 			reference->AddBoneId(i);
 
 		auto refPose = Frame::Create(s2Bones.size());
-		std::unordered_map<source2::resource::Bone*,Bone*> s2BoneToPragma {};
+		std::unordered_map<source2::resource::Bone*,panima::Bone*> s2BoneToPragma {};
 		std::unordered_map<source2::resource::Bone*,source2::resource::Bone*> s2BoneToS2Parent {};
 		for(auto i=decltype(s2Bones.size()){0u};i<s2Bones.size();++i)
 		{
 			auto &s2Bone = s2Bones.at(i);
-			auto *bone = new Bone{};
+			auto *bone = new panima::Bone{};
 			bone->name = s2Bone->GetName();
 			auto boneId = skeleton.AddBone(bone);
 
@@ -1321,8 +1323,8 @@ std::shared_ptr<Model> source2::convert::convert_model(
 		fTranslateBonePoseToPragma(t);
 
 	// Reference pose bones are in parent space, we need them in global space
-	std::function<void(Bone&,const umath::Transform&)> fRelativeToGlobal = nullptr;
-	fRelativeToGlobal = [&fRelativeToGlobal,&refPose](Bone &bone,const umath::Transform &parentPose) {
+	std::function<void(panima::Bone&,const umath::Transform&)> fRelativeToGlobal = nullptr;
+	fRelativeToGlobal = [&fRelativeToGlobal,&refPose](panima::Bone &bone,const umath::Transform &parentPose) {
 		auto *pPose = refPose.GetBoneTransform(bone.ID);
 		auto pose = pPose ? *pPose : umath::Transform{};
 		pose = parentPose *pose;

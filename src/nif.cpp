@@ -39,6 +39,8 @@
 #include <sharedutils/util_path.hpp>
 #include <pragma/game/game_resources.hpp>
 #include <materialmanager.h>
+#include <panima/skeleton.hpp>
+#include <panima/bone.hpp>
 
 struct membuf : std::streambuf
 {
@@ -55,11 +57,11 @@ static Quat nif_quat_to_engine_quat(const Niflib::Quaternion &q)
 	return r;
 }
 
-static std::shared_ptr<Bone> nif_node_to_engine_bone(const Niflib::Ref<Niflib::NiNode> &node,Skeleton &skeleton)
+static std::shared_ptr<panima::Bone> nif_node_to_engine_bone(const Niflib::Ref<Niflib::NiNode> &node,panima::Skeleton &skeleton)
 {
 	auto name = node->GetName();
 	auto &skBones = skeleton.GetBones();
-	auto it = std::find_if(skBones.begin(),skBones.end(),[&name](const std::shared_ptr<Bone> &bone) {
+	auto it = std::find_if(skBones.begin(),skBones.end(),[&name](const std::shared_ptr<panima::Bone> &bone) {
 		return (bone->name == name) ? true : false;
 	});
 	assert(it != skBones.end());
@@ -251,7 +253,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 					continue;
 
 
-			auto it = std::find_if(bones.begin(),bones.end(),[&name](const std::shared_ptr<Bone> &bone) {
+			auto it = std::find_if(bones.begin(),bones.end(),[&name](const std::shared_ptr<panima::Bone> &bone) {
 				return (bone->name == name) ? true : false;
 			});
 			if(it == bones.end())
@@ -435,18 +437,18 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 	auto &refPose = mdl->GetReference();
 	auto &rootBones = skeleton.GetRootBones();
 	auto &skBones = skeleton.GetBones();
-	std::function<void(Niflib::NiNode*,std::shared_ptr<Bone>)> fInsertBone = nullptr;
-	fInsertBone = [&fInsertBone,&skeleton,&rootBones,&refPose,&skBones](Niflib::NiNode *node,std::shared_ptr<Bone> parent) {
-		std::shared_ptr<Bone> skBone = nullptr;
+	std::function<void(Niflib::NiNode*,std::shared_ptr<panima::Bone>)> fInsertBone = nullptr;
+	fInsertBone = [&fInsertBone,&skeleton,&rootBones,&refPose,&skBones](Niflib::NiNode *node,std::shared_ptr<panima::Bone> parent) {
+		std::shared_ptr<panima::Bone> skBone = nullptr;
 		auto name = node->GetName();
-		auto it = std::find_if(skBones.begin(),skBones.end(),[&name](const std::shared_ptr<Bone> &bone) {
+		auto it = std::find_if(skBones.begin(),skBones.end(),[&name](const std::shared_ptr<panima::Bone> &bone) {
 			return (bone->name == name) ? true : false;
 		});
 		if(it != skBones.end())
 			skBone = *it;
 		else
 		{
-			auto *pBone = new Bone();
+			auto *pBone = new panima::Bone();
 			pBone->name = name;
 			auto boneId = skeleton.AddBone(pBone);
 			skBone = skeleton.GetBone(boneId).lock();
@@ -788,7 +790,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 				{
 					auto &bone = bones.at(i);
 					auto name = bone->GetName();
-					auto it = std::find_if(skBones.begin(),skBones.end(),[&name](const std::shared_ptr<Bone> &bone) {
+					auto it = std::find_if(skBones.begin(),skBones.end(),[&name](const std::shared_ptr<panima::Bone> &bone) {
 						return (bone->name == name) ? true : false;
 					});
 					auto boneId = (*it)->ID;

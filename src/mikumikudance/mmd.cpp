@@ -19,6 +19,8 @@
 #include <util_image.hpp>
 #include <util_texture_info.hpp>
 #include <sharedutils/util.h>
+#include <panima/skeleton.hpp>
+#include <panima/bone.hpp>
 
 extern DLLNETWORK Engine *engine;
 
@@ -469,7 +471,7 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 			std::cout<<"Unknown japanese bone name: "<<hexName<<" (UTF8)"<<std::endl;
 		}
 
-		auto *mdlBone = new Bone();
+		auto *mdlBone = new panima::Bone();
 		mdlBone->name = boneName;
 		auto boneId = skeleton.AddBone(mdlBone);
 		if(mdlBone->name.empty())

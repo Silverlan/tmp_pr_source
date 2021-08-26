@@ -35,6 +35,8 @@
 #include <util_texture_info.hpp>
 #include <VTFFile.h>
 #include <udm.hpp>
+#include <panima/bone.hpp>
+#include <panima/skeleton.hpp>
 
 #pragma comment(lib,"libfbxsdk-md.lib")
 #pragma comment(lib,"lua51.lib")
@@ -239,16 +241,16 @@ static bool write_data(const std::string &fpath,const std::vector<uint8_t> &data
 }
 
 /// SMD
-static uint32_t add_bone(const SMDModel::Node &node,Skeleton &skeleton,std::shared_ptr<Bone> *bone=nullptr)
+static uint32_t add_bone(const SMDModel::Node &node,panima::Skeleton &skeleton,std::shared_ptr<panima::Bone> *bone=nullptr)
 {
 	Model mdl;
 	auto &bones = skeleton.GetBones();
-	auto it = std::find_if(bones.begin(),bones.end(),[&node](const std::shared_ptr<Bone> &bone) {
+	auto it = std::find_if(bones.begin(),bones.end(),[&node](const std::shared_ptr<panima::Bone> &bone) {
 		return (node.name == bone->name) ? true : false;
 		});
 	if(it == bones.end())
 	{
-		auto *ptrBone = new Bone;
+		auto *ptrBone = new panima::Bone;
 		ptrBone->name = node.name;
 		skeleton.AddBone(ptrBone);
 		it = bones.end() -1;
@@ -258,7 +260,7 @@ static uint32_t add_bone(const SMDModel::Node &node,Skeleton &skeleton,std::shar
 	return it -bones.begin();
 }
 
-static void update_skeletal_hierarchy(SMDModel &smd,Skeleton &skeleton)
+static void update_skeletal_hierarchy(SMDModel &smd,panima::Skeleton &skeleton)
 {
 	auto &nodes = smd.GetNodes();
 	for(auto &node : nodes)
@@ -278,7 +280,7 @@ static void update_skeletal_hierarchy(SMDModel &smd,Skeleton &skeleton)
 	}
 }
 
-static void add_nodes_to_skeleton(SMDModel &smd,Skeleton &skeleton,pragma::animation::Animation *anim)
+static void add_nodes_to_skeleton(SMDModel &smd,panima::Skeleton &skeleton,pragma::animation::Animation *anim)
 {
 	auto &smdSkeleton = smd.GetSkeleton();
 	auto &smdNodes = smd.GetNodes();
@@ -306,7 +308,7 @@ static std::vector<uint32_t> get_skeleton_translation_table(SMDModel &smd,Model 
 	t.reserve(nodes.size());
 	for(auto &node : nodes)
 	{
-		auto it = std::find_if(bones.begin(),bones.end(),[&node](const std::shared_ptr<Bone> &bone) {
+		auto it = std::find_if(bones.begin(),bones.end(),[&node](const std::shared_ptr<panima::Bone> &bone) {
 			return (node.name == bone->name) ? true : false;
 			});
 		t.push_back((*it)->ID);
