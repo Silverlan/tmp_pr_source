@@ -37,7 +37,7 @@ static uint32_t add_material(NetworkState &nw,Model &mdl,const std::string &mat,
 	path.PopFront();
 
 	auto outputPath = path;
-	if(ustring::compare(front,"materials",false) == false)
+	if(ustring::compare<std::string_view>(front,"materials",false) == false)
 		outputPath = "models/" +outputPath;
 
 	// Materials in Source 2 can be in arbitrary locations (relative to the game), not necessarily
@@ -45,8 +45,8 @@ static uint32_t add_material(NetworkState &nw,Model &mdl,const std::string &mat,
 	// change its path for Pragma.
 	::util::port_file(&nw,inputPath,"materials/" +outputPath.GetString());
 
-	auto strPath = outputPath.GetPath();
-	auto strFile = outputPath.GetFileName();
+	auto strPath = std::string{outputPath.GetPath()};
+	auto strFile = std::string{outputPath.GetFileName()};
 	mdl.AddTexturePath(strPath);
 
 	if(skinId.has_value())

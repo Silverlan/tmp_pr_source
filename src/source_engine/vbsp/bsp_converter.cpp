@@ -417,7 +417,7 @@ void pragma::asset::vbsp::BSPConverter::ConvertEntityData()
 	// Make sure the world is the first in the list
 	auto itWorld = std::find_if(entities.begin(),entities.end(),[&fGetKeyValue](const bsp::EntityBlock &entBlock) {
 		auto &className = fGetKeyValue(entBlock,"classname");
-		return ustring::compare(className,"worldspawn",false);
+		return ustring::compare<std::string>(className,"worldspawn",false);
 	});
 	if(itWorld != entities.end())
 	{
@@ -446,7 +446,7 @@ void pragma::asset::vbsp::BSPConverter::ConvertEntityData()
 		auto className = fGetKeyValue(entBlock,"classname");
 		if(className.empty())
 			continue;
-		auto isWorld = ustring::compare(className,"worldspawn",false);
+		auto isWorld = ustring::compare<std::string>(className,"worldspawn",false);
 		if(isWorld == true)
 		{
 			entBlock->keyvalues.insert(std::make_pair("color",std::vector<std::string>{WLD_DEFAULT_AMBIENT_COLOR.ToString()}));
@@ -481,7 +481,7 @@ void pragma::asset::vbsp::BSPConverter::ConvertEntityData()
 				entBlock->keyvalues["origin"] = {std::to_string(model.origin.x) +" " +std::to_string(model.origin.y) +" " +std::to_string(model.origin.z)};
 		}
 
-		if(ustring::compare(className,"func_detail",false) == true)
+		if(ustring::compare<std::string>(className,"func_detail",false) == true)
 		{
 			// We'll add the func_detail geometry to the map entity
 			if(brushModelId != -1)
@@ -715,7 +715,7 @@ void pragma::asset::vbsp::BSPConverter::ExtractBSPFiles()
 			continue;
 		}
 		std::string ext;
-		if(ufile::get_extension(fName,&ext) && ustring::compare(ext,"vhv",false))
+		if(ufile::get_extension(fName,&ext) && ustring::compare<std::string>(ext,"vhv",false))
 		{
 			++numSkippedVhvFiles;
 			continue;

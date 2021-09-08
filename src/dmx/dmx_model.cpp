@@ -227,7 +227,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 
 					for(auto &pair : el->attributes)
 					{
-						if(ustring::compare(pair.first,"initializers",false))
+						if(ustring::compare<std::string>(pair.first,"initializers",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 							for(auto &attr : *value)
@@ -239,14 +239,14 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								if(el->type != "DmeParticleOperator")
 									continue;
 								auto &opName = el->name;
-								if(ustring::compare(opName,"lifetime random",false))
+								if(ustring::compare<std::string>(opName,"lifetime random",false))
 								{
 									particleSystemData.initializers.push_back({"lifetime_random"});
 									auto &initializer = particleSystemData.initializers.back();
 									initializer.settings["lifetime_min"] = attribute_to_string(*el,"lifetime_min","0");
 									initializer.settings["lifetime_max"] = attribute_to_string(*el,"lifetime_max","0");
 								}
-								else if(ustring::compare(opName,"Position Within Box Random",false))
+								else if(ustring::compare<std::string>(opName,"Position Within Box Random",false))
 								{
 									auto xMin = attribute_to_string(*el,"x_min","0");
 									auto xMax = attribute_to_string(*el,"x_max","0");
@@ -264,7 +264,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 									initializer.settings["min"] = std::to_string(min.x) +' ' +std::to_string(min.y) +' ' +std::to_string(min.z);
 									initializer.settings["max"] = std::to_string(max.x) +' ' +std::to_string(max.y) +' ' +std::to_string(max.z);
 								}
-								else if(ustring::compare(opName,"Position Within Sphere Random",false))
+								else if(ustring::compare<std::string>(opName,"Position Within Sphere Random",false))
 								{
 									particleSystemData.initializers.push_back({"position_random_sphere"});
 									auto &initializer = particleSystemData.initializers.back();
@@ -272,7 +272,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 									initializer.settings["distance_max"] = attribute_to_string(*el,"distance_min","0");
 									initializer.settings["distance_bias"] = attribute_to_string(*el,"distance_bias","1 1 1");
 								}
-								else if(ustring::compare(opName,"Radius Random",false))
+								else if(ustring::compare<std::string>(opName,"Radius Random",false))
 								{
 									particleSystemData.initializers.push_back({"radius_random"});
 									auto &initializer = particleSystemData.initializers.back();
@@ -281,7 +281,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								}
 							}
 						}
-						else if(ustring::compare(pair.first,"renderers",false))
+						else if(ustring::compare<std::string>(pair.first,"renderers",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 							for(auto &attr : *value)
@@ -293,11 +293,11 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								if(el->type != "DmeParticleOperator")
 									continue;
 								auto &opName = el->name;
-								if(ustring::compare(opName,"render_animated_sprites",false))
+								if(ustring::compare<std::string>(opName,"render_animated_sprites",false))
 									particleSystemData.settings["emission_rate"] = attribute_to_string(*el,"animation rate","0");
 							}
 						}
-						else if(ustring::compare(pair.first,"operators",false))
+						else if(ustring::compare<std::string>(pair.first,"operators",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 							for(auto &attr : *value)
@@ -311,7 +311,7 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 
 							}
 						}
-						else if(ustring::compare(pair.first,"children",false))
+						else if(ustring::compare<std::string>(pair.first,"children",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 							for(auto &attr : *value)
@@ -325,22 +325,22 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 
 							}
 						}
-						else if(ustring::compare(pair.first,"emitters",false))
+						else if(ustring::compare<std::string>(pair.first,"emitters",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 
 						}
-						else if(ustring::compare(pair.first,"view model effect",false))
+						else if(ustring::compare<std::string>(pair.first,"view model effect",false))
 						{
 							auto *value = pair.second->GetBoolean();
 
 						}
-						else if(ustring::compare(pair.first,"cull_control_point",false))
+						else if(ustring::compare<std::string>(pair.first,"cull_control_point",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"color",false))
+						else if(ustring::compare<std::string>(pair.first,"color",false))
 						{
 							auto *value = pair.second->GetColor();
 							if(value)
@@ -351,43 +351,43 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 									std::to_string(value->at(3));
 							}
 						}
-						else if(ustring::compare(pair.first,"forces",false))
+						else if(ustring::compare<std::string>(pair.first,"forces",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 
 						}
-						else if(ustring::compare(pair.first,"preventNameBasedLookup",false))
+						else if(ustring::compare<std::string>(pair.first,"preventNameBasedLookup",false))
 						{
 							auto *value = pair.second->GetBoolean();
 
 						}
-						else if(ustring::compare(pair.first,"maximum sim tick rate",false))
+						else if(ustring::compare<std::string>(pair.first,"maximum sim tick rate",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"constraints",false))
+						else if(ustring::compare<std::string>(pair.first,"constraints",false))
 						{
 							auto *value = pair.second->GetArray(dmx::AttrType::ElementArray);
 
 						}
-						else if(ustring::compare(pair.first,"max_particles",false))
+						else if(ustring::compare<std::string>(pair.first,"max_particles",false))
 						{
 							auto *value = pair.second->GetInt();
 							if(value)
 								particleSystemData.settings["maxparticles"] = std::to_string(*value);
 						}
-						else if(ustring::compare(pair.first,"time to sleep when not drawn",false))
+						else if(ustring::compare<std::string>(pair.first,"time to sleep when not drawn",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"initial_particles",false))
+						else if(ustring::compare<std::string>(pair.first,"initial_particles",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"material",false))
+						else if(ustring::compare<std::string>(pair.first,"material",false))
 						{
 							auto *value = pair.second->GetString();
 							if(value)
@@ -397,94 +397,94 @@ bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 								particleSystemData.settings["material"] = matPath;
 							}
 						}
-						else if(ustring::compare(pair.first,"bounding_box_min",false))
+						else if(ustring::compare<std::string>(pair.first,"bounding_box_min",false))
 						{
 							auto *value = pair.second->GetVector3();
 
 						}
-						else if(ustring::compare(pair.first,"cull_replacement_definition",false))
+						else if(ustring::compare<std::string>(pair.first,"cull_replacement_definition",false))
 						{
 							auto *value = pair.second->GetString();
 
 						}
-						else if(ustring::compare(pair.first,"bounding_box_max",false))
+						else if(ustring::compare<std::string>(pair.first,"bounding_box_max",false))
 						{
 							auto *value = pair.second->GetVector3();
 
 						}
-						else if(ustring::compare(pair.first,"cull_radius",false))
+						else if(ustring::compare<std::string>(pair.first,"cull_radius",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"cull_cost",false))
+						else if(ustring::compare<std::string>(pair.first,"cull_cost",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"sequence_number 1",false))
+						else if(ustring::compare<std::string>(pair.first,"sequence_number 1",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"radius",false))
+						else if(ustring::compare<std::string>(pair.first,"radius",false))
 						{
 							auto *value = pair.second->GetFloat();
 							if(value)
 								particleSystemData.settings["radius"] = std::to_string(*value);
 						}
-						else if(ustring::compare(pair.first,"control point to disable rendering if it is the camera",false))
+						else if(ustring::compare<std::string>(pair.first,"control point to disable rendering if it is the camera",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"rotation",false))
+						else if(ustring::compare<std::string>(pair.first,"rotation",false))
 						{
 							auto *value = pair.second->GetFloat();
 							
 						}
-						else if(ustring::compare(pair.first,"rotation_speed",false))
+						else if(ustring::compare<std::string>(pair.first,"rotation_speed",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"sequence_number",false))
+						else if(ustring::compare<std::string>(pair.first,"sequence_number",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"group id",false))
+						else if(ustring::compare<std::string>(pair.first,"group id",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"maximum draw distance",false))
+						else if(ustring::compare<std::string>(pair.first,"maximum draw distance",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"maximum time step",false))
+						else if(ustring::compare<std::string>(pair.first,"maximum time step",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"minimum sim tick rate",false))
+						else if(ustring::compare<std::string>(pair.first,"minimum sim tick rate",false))
 						{
 							auto *value = pair.second->GetFloat();
 
 						}
-						else if(ustring::compare(pair.first,"minimum rendered frames",false))
+						else if(ustring::compare<std::string>(pair.first,"minimum rendered frames",false))
 						{
 							auto *value = pair.second->GetInt();
 
 						}
-						else if(ustring::compare(pair.first,"Sort particles",false))
+						else if(ustring::compare<std::string>(pair.first,"Sort particles",false))
 						{
 							auto *value = pair.second->GetBoolean();
 							if(value)
 								particleSystemData.settings["sort_particles"] = *value ? "1" : "0";
 						}
-						else if(ustring::compare(pair.first,"batch particle systems",false))
+						else if(ustring::compare<std::string>(pair.first,"batch particle systems",false))
 						{
 							auto *value = pair.second->GetBoolean();
 						

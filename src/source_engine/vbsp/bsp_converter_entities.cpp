@@ -140,10 +140,10 @@ void source_engine::translate_class(
 	auto bUseOrigin = itOrigin != inKeyValues.end();
 	auto bUseAngles = itAngles != inKeyValues.end();
 	// Translate entities
-	if(ustring::compare(className,"prop_physics_multiplayer",false) || ustring::compare(className,"prop_static",false) || ustring::compare(className,"prop_physics",false))
+	if(ustring::compare<std::string>(className,"prop_physics_multiplayer",false) || ustring::compare<std::string>(className,"prop_static",false) || ustring::compare<std::string>(className,"prop_physics",false))
 	{
 		// TODO: Also see staticPropLumps for static props!
-		auto bStatic = ustring::compare(className,"prop_static",false);
+		auto bStatic = ustring::compare<std::string>(className,"prop_static",false);
 		className = "prop_physics";
 		outKeyValues.insert(std::make_pair("maxvisibledist",fGetKeyValue("fademaxdist")));
 		outKeyValues.insert(std::make_pair("model",fGetKeyValue("model")));
@@ -157,7 +157,7 @@ void source_engine::translate_class(
 			flags |= umath::to_integral(pragma::BasePropComponent::SpawnFlags::DisableCollisions);
 		outKeyValues.insert(std::make_pair("spawnflags",std::to_string(flags)));
 	}
-	else if(ustring::compare(className,"prop_dynamic_override",false) || ustring::compare(className,"prop_dynamic",false))
+	else if(ustring::compare<std::string>(className,"prop_dynamic_override",false) || ustring::compare<std::string>(className,"prop_dynamic",false))
 	{
 		className = "prop_dynamic";
 		outKeyValues.insert(std::make_pair("maxvisibledist",fGetKeyValue("fademaxdist")));
@@ -170,11 +170,11 @@ void source_engine::translate_class(
 			flags |= umath::to_integral(pragma::BasePropComponent::SpawnFlags::DisableCollisions);
 		outKeyValues.insert(std::make_pair("spawnflags",std::to_string(flags)));
 	}
-	else if(ustring::compare(className,"trigger_gravity"))
+	else if(ustring::compare<std::string>(className,"trigger_gravity"))
 	{
 
 	}
-	else if(ustring::compare(className,"light"))
+	else if(ustring::compare<std::string>(className,"light"))
 	{
 		className = "env_light_point";
 		outKeyValues.insert(std::make_pair("spawnflags",std::to_string(LIGHT_SOURCE_FLAGS)));
@@ -191,7 +191,7 @@ void source_engine::translate_class(
 		))));
 		outKeyValues.insert(std::make_pair("light_flags","1")); // Baked light source
 	}
-	else if(ustring::compare(className,"light_spot"))
+	else if(ustring::compare<std::string>(className,"light_spot"))
 	{
 		className = "env_light_spot";
 		outKeyValues.insert(std::make_pair("spawnflags",std::to_string(LIGHT_SOURCE_FLAGS)));
@@ -217,7 +217,7 @@ void source_engine::translate_class(
 			bUseAngles = true;
 		}
 	}
-	else if(ustring::compare(className,"light_environment"))
+	else if(ustring::compare<std::string>(className,"light_environment"))
 	{
 		/*static auto count = 0;
 		if(++count > 1)
@@ -251,7 +251,7 @@ void source_engine::translate_class(
 			bUseAngles = true;
 		}
 	}
-	/*else if(ustring::compare(className,"ambient_generic"))
+	/*else if(ustring::compare<std::string>(className,"ambient_generic"))
 	{
 	className = "env_sound";
 	outKeyValues.insert(std::make_pair("gain",std::to_string(util::to_float(fGetKeyValue("health")) /10.f)));
@@ -263,15 +263,15 @@ void source_engine::translate_class(
 	spawnFlags |= pragma::BaseEnvSoundComponent::SpawnFlags::PlayEverywhere;
 	outKeyValues.insert(std::make_pair("spawnflags",std::to_string(umath::to_integral(spawnFlags))));
 	}*/
-	else if(ustring::compare(className,"sky_camera",false) == true)
+	else if(ustring::compare<std::string>(className,"sky_camera",false) == true)
 	{
-		if(ustring::compare(className,"sky_camera"))
+		if(ustring::compare<std::string>(className,"sky_camera"))
 			outKeyValues.insert(std::make_pair("wv_hint_clientsideonly","1"));
 		outKeyValues.insert(std::make_pair("skybox_scale",fGetKeyValue("scale")));
 	}
 	else // Just use it unchanged
 	{
-		if(ustring::compare(className,"env_cubemap") || ustring::compare(className,"util_cubemap"))
+		if(ustring::compare<std::string>(className,"env_cubemap") || ustring::compare<std::string>(className,"util_cubemap"))
 		{
 			className = "env_reflection_probe";
 			outKeyValues.insert(std::make_pair("wv_hint_clientsideonly","1"));
@@ -504,7 +504,7 @@ std::vector<util::fgd::Data> source_engine::load_fgds(class NetworkState &nwStat
 			auto f = FileManager::OpenFile((fgdPath +fname).c_str(),"r");
 			if(f == nullptr)
 			{
-				if(ustring::compare(fileName,"halflife.fgd",false) == true)
+				if(ustring::compare<std::string>(fileName,"halflife.fgd",false) == true)
 					fname = "hl1/" +fname;
 				else
 					fname = "bin/" +fname;
