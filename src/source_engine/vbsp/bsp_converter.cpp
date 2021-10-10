@@ -122,11 +122,12 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 
 	// Generate uuids
 	auto path = util::Path::CreateFile(m_path);
-	auto seed = std::hash<std::string>{}(path.GetString());
 	for(auto &ent : m_outputWorldData->GetEntities())
 	{
+		auto seed = std::hash<std::string>{}(path.GetString() +"_" +std::to_string(ent->GetMapIndex()));
 		auto uuid = util::generate_uuid_v4(seed); // Seed may overflow, but doesn't really bother us in this case
 		ent->SetKeyValue("uuid",util::uuid_to_string(uuid));
+		++seed;
 	}
 
 	util::ScopeGuard sg([]() {
