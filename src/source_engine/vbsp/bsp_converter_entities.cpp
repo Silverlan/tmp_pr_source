@@ -556,8 +556,39 @@ void source_engine::translate_entity_data(
 )
 {
 	auto &nw = worldData.GetNetworkState();
+	auto &ents = worldData.GetEntities();
+	auto findByClass = [&ents](const std::string &className) {
+		return std::find_if(ents.begin(),ents.end(),[&className](const std::shared_ptr<pragma::asset::EntityData> &entData) -> bool {
+			return ustring::compare(entData->GetClassName(),className,false);
+		});
+	};
+	auto itSkyCamera = findByClass("sky_camera");
+	if(itSkyCamera != ents.end())
+	{
+		auto &entSkyCamera = **itSkyCamera;
+		auto fogEnable = entSkyCamera.GetKeyValue("fogenable");
+		if(fogEnable.has_value() && util::to_boolean(*fogEnable))
+		{
+			auto entFog = pragma::asset::EntityData::Create();
+			entFog->SetClassName("env_fog_controller");
+			auto copyKeyValue = [&entSkyCamera,&entFog](const std::string &srcKey,const std::string &dstKey) {
+				auto val = entSkyCamera.GetKeyValue(srcKey);
+				if(val.has_value())
+					entFog->SetKeyValue(dstKey,*val);
+			};
+			copyKeyValue("fogcolor","fogcolor");
+			copyKeyValue("fogstart","fogstart");
+			copyKeyValue("fogend","fogend");
+			copyKeyValue("fogmaxdensity","fogmaxdensity");
+			entFog->SetKeyValue("spawnflags","1024");
+			const_cast<std::vector<std::shared_ptr<pragma::asset::EntityData>>&>(ents).push_back(entFog);
+			auto &components = entFog->GetComponents();
+			components.push_back("toggle");
+		}
+	}
 	for(auto &entData : worldData.GetEntities())
 	{
+		auto &originalClassName = entData->GetClassName();
 		auto &keyValues = entData->GetKeyValues();
 		translate_entity_data(nw,*entData,fgdData,isSource2,messageLogger,optMsgCache);
 	}
