@@ -10,7 +10,7 @@
 
 const auto LIGHT_SOURCE_FLAGS = /*umath::to_integral(pragma::BaseEnvLightComponent::SpawnFlag::DontCastShadows) | */
 	umath::to_integral(pragma::BaseToggleComponent::SpawnFlags::StartOn) | umath::to_integral(pragma::BaseEnvLightComponent::SpawnFlag::DontCastShadows);
-
+#pragma optimize("",off)
 static std::string invert_x_coordinate(std::string str)
 {
 	if(str.empty())
@@ -476,7 +476,7 @@ std::vector<util::fgd::Data> source_engine::load_fgds(class NetworkState &nwStat
 	// To know which keyvalues need to be transformed, we need the keyvalue's type, for which we need to load the FGD-file of the game the VMF came from.
 	// Since we can't know the game, we'll load all available FGD files and search for the keyvalues in each of them.
 	const std::array<std::string,17> fgds = {
-		"Hammer/pragma.fgd",
+		"pragma.fgd",
 		"AoC.fgd",
 		"DipRip.fgd",
 		"GarrysMod.fgd",
@@ -646,3 +646,4 @@ void source_engine::translate_entity_data(
 	entData.SetFlags(flags);
 	entData.GetKeyValues() = keyValues;
 }
+#pragma optimize("",on)
