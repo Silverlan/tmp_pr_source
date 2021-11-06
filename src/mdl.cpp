@@ -3175,6 +3175,7 @@ std::shared_ptr<Model> import::load_mdl(
 				colMesh->SetBoneParent(boneId);
 				colMesh->Update();
 				colMesh->SetVolume(colObj.keyValues.volume);
+				colMesh->SetMass(colObj.keyValues.mass);
 				mdl.AddCollisionMesh(colMesh);
 				if(bFirst == true)
 				{
