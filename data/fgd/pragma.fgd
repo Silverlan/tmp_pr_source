@@ -730,7 +730,13 @@
 @SolidClass base(Targetname) = func_portal :
 	""
 [
-	
+	target(target_destination) : "Portal Target" : "" : "The target entity to create a portal to. If the target is also a portal, the planes will be aligned automatically. If no target is specified, the portal will act as a mirror."
+	portal_origin(origin) : "Portal Origin" : : "The origin of the portal on the surface plane. If the point is not on the plane, it will be projected onto it."
+	mirrored(choices) : "Mirrored?" : 0 : "If enabled, the portal will be mirrored." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
 ]
 
 @SolidClass base(Targetname) = func_kinematic :
