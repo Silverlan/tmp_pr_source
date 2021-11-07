@@ -157,6 +157,28 @@
 	color(color255) : "Ambient Color" : "255 255 255 200" : "The default color of unlit areas if no environmental light is active. Set this to '0 0 0' to make unlit areas pitch black."
 ]
 
+@BaseClass color(0 0 200) base(Targetname, Angles, Origin) sphere(fademindist) sphere(fademaxdist) = Weapon
+[
+	spawnflags(Flags) =
+	[
+		1 : "Start constrained" : 0
+		2 : "Deny player pickup (reserve for NPC)" : 0
+		4 : "Not puntable by Gravity Gun" : 0
+	]
+
+	output OnPlayerUse(void) : "Fires when the player +uses this weapon"
+	output OnPlayerPickup(void) : "Fires when the player picks up this weapon"
+	output OnNPCPickup(void) : "Fires when an NPC picks up this weapon"
+	output OnCacheInteraction(void) : "Fires when the player 'proves' they've found this weapon. Fires on: Player Touch, +USE pickup, Physcannon pickup, Physcannon punt."
+
+	fademindist(float) : "Start Fade Dist/Pixels" : -1 : "Distance at which the prop starts to fade (<0 = use fademaxdist). If 'Screen Space Fade' is selected, this represents the number of pixels wide covered by the prop when it starts to fade."
+	fademaxdist(float) : "End Fade Dist/Pixels" : 0 : "Maximum distance at which the prop is visible (0 = don't fade out). If 'Screen Space Fade' is selected, this represents the *minimum* number of pixels wide covered by the prop when it fades."
+	fadescale(float) : "Fade Scale" : 1 : "If you specify a fade in the worldspawn, or if the engine is running under dx7, then the engine will forcibly fade out props even if fademindist/fademaxdist isn't specified." +
+												 " This scale factor gives you some control over the fade. Using 0 here turns off the forcible fades." +
+]
+
+@PointClass base(Weapon) studio("models/weapons/w_physics.mdl") = weapon_physcannon : "Physics Cannon" []
+
 @PointClass base(Origin,Targetname,Angles) = point_target : 
 	""
 [
@@ -933,7 +955,7 @@
 //
 //-------------------------------------------------------------------------
 
-@NPCClass base(BaseNPC) studio("models/zombie/classic.mdl") = npc_zombie : "Zombie"
+@NPCClass base(BaseNPC) studio("models/zombie/classic.mdl") = monster_zombie : "Zombie"
 [
 ]
 
