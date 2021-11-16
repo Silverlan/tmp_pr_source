@@ -1,6 +1,7 @@
 #include <iostream>
 #include "source_engine/vbsp/bsp_converter.hpp"
 #include "source_engine/source_engine.hpp"
+#include <pragma/entities/entity_component_manager.hpp>
 #include <pragma/entities/prop/prop_base.h>
 #include <pragma/entities/environment/lights/env_light.h>
 #include <pragma/asset_types/world.hpp>
