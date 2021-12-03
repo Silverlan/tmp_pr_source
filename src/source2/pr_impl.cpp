@@ -9,13 +9,18 @@
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/console/conout.h>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 
-std::shared_ptr<source2::resource::Resource> source2::impl::load_resource(NetworkState &nw,std::shared_ptr<VFilePtrInternal> &f)
+std::shared_ptr<source2::resource::Resource> source2::impl::load_resource(NetworkState &nw,std::shared_ptr<VFilePtrInternal> &fp)
 {
-	return source2::load_resource(f,[&nw](const std::string &path) -> VFilePtr {
+	fsys::File f {fp};
+	return source2::load_resource(f,[&nw](const std::string &path) -> std::unique_ptr<ufile::IFile> {
 		if(::util::port_file(&nw,path) == false)
 			return nullptr;
-		return FileManager::OpenFile(path.c_str(),"rb");
+		auto fp = FileManager::OpenFile(path.c_str(),"rb");
+		if(!fp)
+			return nullptr;
+		return std::make_unique<fsys::File>(fp);
 	});
 }
 

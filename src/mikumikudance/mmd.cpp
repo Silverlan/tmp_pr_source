@@ -14,6 +14,7 @@
 #include <sharedutils/util_path.hpp>
 #include <mathutil/vertex.hpp>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 #include <util_mmd.hpp>
 #include <luainterface.hpp>
 #include <util_image.hpp>
@@ -349,7 +350,8 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 			Con::cwar<<"WARNING: Unable to open texture '"<<texFilePath<<"'!"<<Con::endl;
 		else
 		{
-			auto imgBuf = uimg::load_image(fTex);
+			fsys::File f {fTex};
+			auto imgBuf = uimg::load_image(f);
 			if(imgBuf == nullptr)
 				Con::cwar<<"WARNING: Unable to load image '"<<texFilePath<<"'!"<<Con::endl;
 			else

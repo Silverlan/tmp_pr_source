@@ -7,6 +7,7 @@
 #include <source2/resource_data.hpp>
 #include <source2/resource_edit_info.hpp>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 #include <util_archive.hpp>
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_path.hpp>
@@ -25,7 +26,7 @@
 #include <unordered_set>
 #include <panima/skeleton.hpp>
 #include <panima/bone.hpp>
-
+#pragma optimize("",off)
 static uint32_t add_material(NetworkState &nw,Model &mdl,const std::string &mat,std::optional<uint32_t> skinId={})
 {
 	::util::Path path{mat};
@@ -452,18 +453,36 @@ static void initialize_scene_objects(
 	}
 }
 
-static std::shared_ptr<source2::resource::Resource> load_resource(NetworkState &nw,const std::string &fileName)
+struct ResourceWrapper
 {
-	auto f = FileManager::OpenFile(fileName.c_str(),"rb");
-	if(f == nullptr)
-		f = uarch::load(fileName);
-	if(f == nullptr)
+	std::shared_ptr<source2::resource::Resource> resource;
+	std::unique_ptr<fsys::File> file;
+};
+static std::unique_ptr<ResourceWrapper> load_resource(NetworkState &nw,const std::string &fileName,const std::optional<std::string> &path)
+{
+	auto fp = FileManager::OpenFile(fileName.c_str(),"rb");
+	if(fp == nullptr)
+		fp = uarch::load(fileName);
+	if(fp == nullptr)
+	{
+		if(path.has_value())
+		{
+			// Try to find resource relative to model location
+			return load_resource(nw,*path +fileName,{});
+		}
 		return nullptr;
-	return source2::load_resource(f,[&nw](const std::string &path) -> VFilePtr {
+	}
+	auto wrapper = std::make_unique<ResourceWrapper>();
+	wrapper->file = std::make_unique<fsys::File>(fp);
+	wrapper->resource = source2::load_resource(*wrapper->file,[&nw](const std::string &path) -> std::unique_ptr<ufile::IFile> {
 		if(::util::port_file(&nw,path) == false)
 			return nullptr;
-		return FileManager::OpenFile(path.c_str(),"rb");
+		auto fp = FileManager::OpenFile(path.c_str(),"rb");
+		if(!fp)
+			return nullptr;
+		return std::make_unique<fsys::File>(fp);
 	});
+	return wrapper->resource ? std::move(wrapper) : nullptr;
 }
 
 static std::unordered_map<std::string,Flex::Operation::Type> g_flexOpTable {
@@ -537,11 +556,14 @@ std::unordered_map<S2FlexOp,Flex::Operation::Type> g_s2FlexToPragma = {
 	{S2FlexOp::DMEUpperEyelid,Flex::Operation::Type::DMEUpperEyelid}
 };
 
-static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueCollection &morphData,Model &mdl,std::unordered_map<uint32_t,uint32_t> &s2FlexDescToPragma)
+static void load_morph_targets(
+	NetworkState &nw,source2::resource::IKeyValueCollection &morphData,Model &mdl,std::unordered_map<uint32_t,uint32_t> &s2FlexDescToPragma,
+	const std::optional<std::string> &path
+)
 {
 	auto textureAtlasPath = morphData.FindValue<std::string>("m_pTextureAtlas");
-	auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c") : nullptr;
-	auto *texAtlas = texAtlasResource ? dynamic_cast<source2::resource::Texture*>(texAtlasResource->FindBlock(source2::BlockType::DATA)) : nullptr;
+	auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c",path) : nullptr;
+	auto *texAtlas = texAtlasResource ? dynamic_cast<source2::resource::Texture*>(texAtlasResource->resource->FindBlock(source2::BlockType::DATA)) : nullptr;
 	if(texAtlas == nullptr)
 	{
 		if(textureAtlasPath.has_value())
@@ -737,7 +759,7 @@ static void load_morph_targets(NetworkState &nw,source2::resource::IKeyValueColl
 }
 
 std::shared_ptr<Model> source2::convert::convert_model(
-	Game &game,source2::resource::Model &s2Mdl,source2::resource::Resource *optResource
+	Game &game,source2::resource::Model &s2Mdl,source2::resource::Resource *optResource,std::optional<std::string> path
 )
 {
 	auto &nw = *game.GetNetworkState();
@@ -864,7 +886,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	auto morphData = morph ? morph->GetData() : nullptr;
 	if(morphData)
 	{
-		load_morph_targets(nw,*morphData,mdl,s2FlexDescToPragma);
+		load_morph_targets(nw,*morphData,mdl,s2FlexDescToPragma,path);
 		morphBlocks.push_back(morphData);
 	}
 
@@ -931,28 +953,28 @@ std::shared_ptr<Model> source2::convert::convert_model(
 		//if(!(lodMask &1)) // TODO: Load ALL lod meshes!
 		//	continue;
 		auto fileName = meshName +"_c";
-		auto resource = ::load_resource(nw,fileName);
+		auto resource = ::load_resource(nw,fileName,path);
 		if(resource == nullptr)
 		{
 			Con::cwar<<"WARNING: Unable to load referenced mesh '"<<meshName<<"'!"<<Con::endl;
 			continue;
 		}
-		auto *vbib = dynamic_cast<source2::resource::VBIB*>(resource->FindBlock(source2::BlockType::VBIB));
-		auto *dataBlock = dynamic_cast<source2::resource::BinaryKV3*>(resource->FindBlock(source2::BlockType::DATA));
+		auto *vbib = dynamic_cast<source2::resource::VBIB*>(resource->resource->FindBlock(source2::BlockType::VBIB));
+		auto *dataBlock = dynamic_cast<source2::resource::BinaryKV3*>(resource->resource->FindBlock(source2::BlockType::DATA));
 		if(vbib == nullptr || dataBlock == nullptr)
 			continue;
 		auto morphSet = dataBlock->GetData()->FindValue<std::string>("m_morphSet");
 		if(morphSet.has_value())
 		{
 			auto fileName = *morphSet +"_c";
-			auto resource = ::load_resource(nw,fileName);
+			auto resource = ::load_resource(nw,fileName,path);
 			if(resource != nullptr)
 			{
-				auto *morph = resource ? dynamic_cast<source2::resource::KeyValuesOrNTRO*>(resource->FindBlock(source2::BlockType::MRPH)) : nullptr;
-				auto *data = dynamic_cast<source2::resource::ResourceData*>(resource->FindBlock(source2::BlockType::DATA));
+				auto *morph = resource ? dynamic_cast<source2::resource::KeyValuesOrNTRO*>(resource->resource->FindBlock(source2::BlockType::MRPH)) : nullptr;
+				auto *data = dynamic_cast<source2::resource::ResourceData*>(resource->resource->FindBlock(source2::BlockType::DATA));
 				if(data)
 				{
-					load_morph_targets(nw,*data->GetData(),mdl,s2FlexDescToPragma);
+					load_morph_targets(nw,*data->GetData(),mdl,s2FlexDescToPragma,path);
 					morphBlocks.push_back(data->GetData()->shared_from_this());
 				}
 			}
@@ -967,13 +989,13 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	for(auto &refAnimGroup : s2Mdl.GetData()->FindArrayValues<std::string>("m_refAnimGroups"))
 	{
 		auto fileName = refAnimGroup +"_c";
-		auto resource = ::load_resource(nw,fileName);
+		auto resource = ::load_resource(nw,fileName,path);
 		if(resource == nullptr)
 		{
 			Con::cwar<<"WARNING: Unable to load referenced animation group '"<<refAnimGroup<<"'!"<<Con::endl;
 			continue;
 		}
-		auto *dataBlock = dynamic_cast<source2::resource::ResourceData*>(resource->FindBlock(source2::BlockType::DATA));
+		auto *dataBlock = dynamic_cast<source2::resource::ResourceData*>(resource->resource->FindBlock(source2::BlockType::DATA));
 		auto data = dataBlock ? dataBlock->GetData() : nullptr;
 		if(data == nullptr)
 			continue;
@@ -984,13 +1006,13 @@ std::shared_ptr<Model> source2::convert::convert_model(
 		for(auto &animFile : animArray)
 		{
 			auto fileName = animFile +"_c";
-			auto resource = ::load_resource(nw,fileName);
+			auto resource = ::load_resource(nw,fileName,path);
 			if(resource == nullptr)
 			{
 				Con::cwar<<"WARNING: Unable to load referenced animation '"<<animFile<<"'!"<<Con::endl;
 				continue;
 			}
-			auto *dataBlock = dynamic_cast<source2::resource::ResourceData*>(resource->FindBlock(source2::BlockType::DATA));
+			auto *dataBlock = dynamic_cast<source2::resource::ResourceData*>(resource->resource->FindBlock(source2::BlockType::DATA));
 			auto data = dataBlock ? dataBlock->GetData() : nullptr;
 			if(data == nullptr)
 				continue;
@@ -1048,8 +1070,8 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	for(auto &morphData : morphBlocks)
 	{
 		auto textureAtlasPath = morphData->FindValue<std::string>("m_pTextureAtlas");
-		auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c") : nullptr;
-		auto *texAtlas = texAtlasResource ? dynamic_cast<source2::resource::Texture*>(texAtlasResource->FindBlock(source2::BlockType::DATA)) : nullptr;
+		auto texAtlasResource = textureAtlasPath.has_value() ? ::load_resource(nw,*textureAtlasPath +"_c",path) : nullptr;
+		auto *texAtlas = texAtlasResource ? dynamic_cast<source2::resource::Texture*>(texAtlasResource->resource->FindBlock(source2::BlockType::DATA)) : nullptr;
 		if(texAtlas == nullptr)
 		{
 			if(textureAtlasPath.has_value())
@@ -1358,3 +1380,4 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	import::util::port_model_texture_assets(nw,mdl);
 	return ptrMdl;
 }
+#pragma optimize("",on)

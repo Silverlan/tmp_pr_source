@@ -629,6 +629,13 @@ void source_engine::translate_entity_data(
 		entData.SetOrigin(origin);
 	}
 
+	auto itAngles = keyValues.find("angles");
+	if(itAngles != keyValues.end() && itAngles->second.empty() == false)
+	{
+		auto angles = EulerAngles(itAngles->second);
+		entData.SetRotation(uquat::create(angles));
+	}
+
 	// Setup entity components depending on keyvalues
 	std::unordered_set<std::string> components {};
 	source_engine::find_entity_components(keyValues,components);

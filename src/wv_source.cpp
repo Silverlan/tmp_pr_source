@@ -1131,7 +1131,7 @@ extern "C" {
 			Con::cout<<"Found model in '"<<*sourcePath<<"'! Porting..."<<Con::endl;
 
 		std::vector<std::string> textures;
-		auto r = ::import::load_source2_mdl(*nw->GetGameState(),f,fCallback,true,textures,optLog);
+		auto r = ::import::load_source2_mdl(*nw->GetGameState(),f,fullPath,fCallback,true,textures,optLog);
 		if(r == nullptr)
 			return false;
 		return fCallback(r,path,mdlName);

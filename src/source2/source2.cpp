@@ -7,6 +7,7 @@
 #include <source2/resource_data.hpp>
 #include <source2/resource_edit_info.hpp>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 #include <util_archive.hpp>
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_path.hpp>
@@ -25,14 +26,19 @@ Vector3 source2::impl::convert_source2_vector_to_pragma(const Vector3 &v)
 }
 
 std::shared_ptr<Model> import::load_source2_mdl(
-	Game &game,VFilePtr f,
+	Game &game,VFilePtr fp,const std::string &mdlPath,
 	const std::function<bool(const std::shared_ptr<Model>&,const std::string&,const std::string&)> &fCallback,bool bCollision,
 	std::vector<std::string> &textures,std::ostream *optLog
 )
 {
+	fsys::File f {fp};
 	auto resource = source2::load_resource(f);
 	auto *s2Mdl = resource ? dynamic_cast<source2::resource::Model*>(resource->FindBlock(source2::BlockType::DATA)) : nullptr;
 	if(s2Mdl == nullptr)
 		return nullptr;
-	return source2::convert::convert_model(game,*s2Mdl,resource.get());
+	auto path = ::util::Path::CreateFile(mdlPath);
+	path.PopBack(); // Pop filename
+	return source2::convert::convert_model(
+		game,*s2Mdl,resource.get(),path.GetString()
+	);
 }

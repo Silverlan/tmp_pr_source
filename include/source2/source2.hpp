@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <functional>
+#include <optional>
 
 class NetworkState;
 class Game;
@@ -22,7 +23,8 @@ namespace source2
 	namespace convert
 	{
 		std::shared_ptr<Model> convert_model(
-			Game &game,source2::resource::Model &s2Mdl,source2::resource::Resource *optResource=nullptr
+			Game &game,source2::resource::Model &s2Mdl,source2::resource::Resource *optResource=nullptr,
+			std::optional<std::string> path={}
 		);
 		std::shared_ptr<pragma::asset::WorldData> convert_map(Game &game,std::shared_ptr<VFilePtrInternal> &f,const std::string &mapName);
 	};

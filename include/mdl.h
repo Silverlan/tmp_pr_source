@@ -286,7 +286,7 @@ namespace import
 		std::vector<std::string> &textures,std::ostream *optLog=nullptr
 	);
 	std::shared_ptr<Model> load_source2_mdl(
-		Game &game,VFilePtr f,
+		Game &game,VFilePtr f,const std::string &mdlPath,
 		const std::function<bool(const std::shared_ptr<Model>&,const std::string&,const std::string&)> &fCallback,bool bCollision,
 		std::vector<std::string> &textures,std::ostream *optLog=nullptr
 	);
