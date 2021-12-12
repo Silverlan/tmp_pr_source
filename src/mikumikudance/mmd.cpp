@@ -12,6 +12,7 @@
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_path.hpp>
+#include <material_manager2.hpp>
 #include <mathutil/vertex.hpp>
 #include <fsys/filesystem.h>
 #include <fsys/ifile.hpp>
@@ -383,7 +384,7 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 		root->AddValue("texture",Material::ALBEDO_MAP_IDENTIFIER,localMatPath);
 
 		auto &matManager = nw.GetMaterialManager();
-		auto *mat = matManager.CreateMaterial(localMatPath,"pbr",root);
+		auto mat = matManager.CreateMaterial(localMatPath,"pbr",root);
 		mat->Save(mat->GetName(),addonPath);
 
 		auto mdlTexIdx = import::util::add_texture(nw,mdl,texName,texGroup,true);

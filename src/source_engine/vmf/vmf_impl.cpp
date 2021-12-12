@@ -5,6 +5,7 @@
 #include <sharedutils/util_string.h>
 #include <sharedutils/util.h>
 #include <materialmanager.h>
+#include <material_manager2.hpp>
 
 std::string vmf::impl::DataFileBlock::KeyValue(const std::string &key,int32_t i)
 {
@@ -283,7 +284,8 @@ std::shared_ptr<PolyMesh> vmf::impl::build_mesh(const std::vector<std::shared_pt
 					su,sv,
 					util::to_float(srot)
 				);
-				poly->SetMaterial(nwState->GetMaterialManager().Load(material));
+				auto mat = nwState->GetMaterialManager().LoadAsset(material);
+				poly->SetMaterial(mat.get());
 				poly->SetNormal(normal);
 				poly->SetDistance(d);
 				mesh->AddPoly(poly);

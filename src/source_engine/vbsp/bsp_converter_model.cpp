@@ -11,7 +11,7 @@
 #include <thread>
 #include <mutex>
 
-std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityData &entData,LightmapData &lightMapInfo,const std::vector<MaterialHandle> &materials)
+std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityData &entData,LightmapData &lightMapInfo,const std::vector<msys::MaterialHandle> &materials)
 {
 	auto &worldData = *m_outputWorldData;
 	auto &game = m_game;
@@ -52,7 +52,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 			auto &faceTexInfo = texInfo.at(face.texInfoIndex); // TODO: face.texInfoIndex == -1?
 			auto texId = (faceTexInfo.texdata != -1) ? texStringTable.at(texData.at(faceTexInfo.texdata).nameStringTableID) : -1;
 			auto hMat = materials.at(texId);
-			auto *diffuseMap = hMat.IsValid() ? hMat.get()->GetDiffuseMap() : nullptr;
+			auto *diffuseMap = hMat ? hMat.get()->GetDiffuseMap() : nullptr;
 			if(diffuseMap == nullptr)
 				; // TODO: Print warning
 			auto texWidth = (diffuseMap != nullptr) ? diffuseMap->width : 0u;

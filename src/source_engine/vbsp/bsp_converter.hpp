@@ -231,8 +231,8 @@ namespace pragma::asset::vbsp
 		);
 		bool GenerateLightMapAtlas(LightmapData &lightmapInfo,const std::string &mapName);
 		void ConvertWorldGeometry();
-		std::shared_ptr<Model> GenerateModel(EntityData &entData,LightmapData &lightmapInfo,const std::vector<MaterialHandle> &materials);
-		std::vector<std::shared_ptr<CollisionMesh>> GeneratePhysics(asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,const std::vector<MaterialHandle> &materials);
+		std::shared_ptr<Model> GenerateModel(EntityData &entData,LightmapData &lightmapInfo,const std::vector<msys::MaterialHandle> &materials);
+		std::vector<std::shared_ptr<CollisionMesh>> GeneratePhysics(asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,const std::vector<msys::MaterialHandle> &materials);
 		void OptimizeLevelGeometry(Model &mdl);
 
 		std::string m_path;

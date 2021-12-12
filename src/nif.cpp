@@ -39,6 +39,7 @@
 #include <sharedutils/util_path.hpp>
 #include <pragma/game/game_resources.hpp>
 #include <materialmanager.h>
+#include <material_manager2.hpp>
 #include <panima/skeleton.hpp>
 #include <panima/bone.hpp>
 
@@ -559,7 +560,7 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 			}
 
 			auto &matManager = nw->GetMaterialManager();
-			auto *mat = matManager.CreateMaterial((albedoPath +albedoMap).GetString(),"pbr",root);
+			auto mat = matManager.CreateMaterial((albedoPath +albedoMap).GetString(),"pbr",root);
 			auto savePath = pragma::asset::relative_path_to_absolute_path(mat->GetName(),pragma::asset::Type::Material,util::CONVERT_PATH);
 			std::string err;
 			mat->Save(savePath.GetString(),err);

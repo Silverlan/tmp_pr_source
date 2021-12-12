@@ -7,7 +7,9 @@
 #include <vmf_entity_data.hpp>
 #include <memory>
 
-std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::GeneratePhysics(asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,const std::vector<MaterialHandle> &materials)
+std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::GeneratePhysics(
+	asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,const std::vector<msys::MaterialHandle> &materials
+)
 {
 	auto &game = m_game;
 	auto numMeshes = polyMeshes.size();

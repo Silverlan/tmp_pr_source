@@ -22,6 +22,7 @@
 
 extern DLLNETWORK Engine *engine;
 const decltype(pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR) pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR = Color{255,255,255,80};
+#pragma optimize("",off)
 Vector3 pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(const Vector3 &inPos)
 {
 	static Quat s_rotationConversion = uquat::create(EulerAngles{0.f,-90.f,0.f});
@@ -56,7 +57,7 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 	ConvertEntityData();
 
 	auto &texStringData = m_bsp->GetTranslatedTexDataStrings();
-	std::vector<MaterialHandle> materials {};
+	std::vector<msys::MaterialHandle> materials {};
 	materials.reserve(texStringData.size());
 	for(auto &str : texStringData)
 	{
@@ -64,7 +65,7 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		ustring::to_lower(lstr);
 		m_nw.LoadMaterial(lstr); // Note: This is on purpose, m_nw may be ClientState
 		auto *mat = m_game.GetNetworkState()->LoadMaterial(lstr);
-		materials.push_back(mat ? mat->GetHandle() : MaterialHandle{});
+		materials.push_back(mat ? mat->GetHandle() : msys::MaterialHandle{});
 	}
 
 	auto lightmapData = LoadLightmapData(m_nw,*m_bsp);
@@ -928,3 +929,4 @@ std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::G
 	}
 	return collisionMeshes;
 }
+#pragma optimize("",on)

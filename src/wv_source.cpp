@@ -37,6 +37,7 @@
 #include <udm.hpp>
 #include <panima/bone.hpp>
 #include <panima/skeleton.hpp>
+#include <material_manager2.hpp>
 
 #pragma comment(lib,"libfbxsdk-md.lib")
 #pragma comment(lib,"lua51.lib")
@@ -223,7 +224,7 @@ void import::util::port_model_texture_assets(NetworkState &nw,Model &mdl)
 			auto matPath = lookupPath +matName;
 			if(pragma::asset::exists(matPath,pragma::asset::Type::Material) || FileManager::Exists("materials/" +matPath +".vmt") || FileManager::Exists("materials/" +matPath +".vmat_c"))
 				break;
-			if(nw.PortMaterial(matPath +"." +std::string{pragma::asset::FORMAT_MATERIAL_ASCII},nullptr))
+			if(nw.PortMaterial(matPath +"." +std::string{pragma::asset::FORMAT_MATERIAL_ASCII}))
 				break;
 		}
 	}
