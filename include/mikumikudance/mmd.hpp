@@ -8,9 +8,10 @@
 struct lua_State;
 class NetworkState;
 class Model;
+namespace ufile {struct IFile;};
 namespace import
 {
-	bool import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::optional<std::string> &path={});
+	bool import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::optional<std::string> &path={});
 	int import_pmx(lua_State *l);
 	int import_vmd(lua_State *l);
 };

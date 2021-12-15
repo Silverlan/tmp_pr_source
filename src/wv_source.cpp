@@ -910,8 +910,8 @@ extern "C" {
 	{
 		pragma::asset::AssetManager::ImporterInfo importerInfo {};
 		importerInfo.name = "MikuMikuDance";
-		importerInfo.fileExtensions = {"pmx"};
-		engine->GetAssetManager().RegisterImporter(importerInfo,pragma::asset::Type::Model,[](Game &game,VFilePtr f,const std::optional<std::string> &mdlPath,std::string &errMsg) -> std::unique_ptr<pragma::asset::IAssetWrapper> {
+		importerInfo.fileExtensions = {{"pmx",false}};
+		engine->GetAssetManager().RegisterImporter(importerInfo,pragma::asset::Type::Model,[](Game &game,ufile::IFile &f,const std::optional<std::string> &mdlPath,std::string &errMsg) -> std::unique_ptr<pragma::asset::IAssetWrapper> {
 			auto mdl = game.CreateModel();
 			if(import::import_pmx(*game.GetNetworkState(),*mdl,f,mdlPath) == false)
 				return nullptr;

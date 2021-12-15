@@ -306,7 +306,7 @@ static std::string get_bone_name(const std::string &jpName,const std::optional<s
 		boneName = *name;
 	return boneName;
 }
-bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::optional<std::string> &path)
+bool import::import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::optional<std::string> &path)
 {
 	auto mdlData = mmd::pmx::load(f);
 	if(mdlData == nullptr)
@@ -325,10 +325,10 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,VFilePtr f,const std::option
 	mdl.AddTexturePath(matPath);
 
 	::util::Path texPath {};
-	auto *fr = dynamic_cast<VFilePtrInternalReal*>(f.get());
-	if(fr)
+	auto fpath = f.GetFileName();
+	if(fpath.has_value())
 	{
-		texPath = texPath.CreateFile(fr->GetPath());
+		texPath = texPath.CreateFile(*fpath);
 		texPath.PopBack();
 	}
 	
@@ -529,7 +529,8 @@ int import::import_pmx(lua_State *l)
 	auto &f = *Lua::CheckFile(l,1);
 	auto &mdl = Lua::Check<Model>(l,2);
 	auto fptr = f.GetHandle();
-	auto r = import_pmx(*engine->GetNetworkState(l),mdl,fptr);
+	fsys::File fp {fptr};
+	auto r = import_pmx(*engine->GetNetworkState(l),mdl,fp);
 	Lua::PushBool(l,r);
 	return 1;
 }
@@ -613,7 +614,8 @@ int import::import_vmd(lua_State *l)
 	auto &f = *Lua::CheckFile(l,1);
 	//auto &mdl = Lua::Check<Model>(l,2);
 	auto fptr = f.GetHandle();
-	auto animData = mmd::vmd::load(fptr);
+	fsys::File fp {fptr};
+	auto animData = mmd::vmd::load(fp);
 	if(animData == nullptr)
 		return 0;
 	auto t = luabind::newtable(l);
