@@ -9,6 +9,7 @@
 #include <pragma/model/modelmesh.h>
 #include <pragma/model/brush/brushmesh.h>
 #include <pragma/physics/collisionmesh.h>
+#include <material_manager2.hpp>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util.h>
 #include <vmf_poly.hpp>
@@ -56,6 +57,11 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 
 	ConvertEntityData();
 
+	auto *matErr = m_game.GetNetworkState()->GetMaterialManager().GetErrorMaterial();
+	assert(matErr != nullptr);
+	if(!matErr)
+		throw std::runtime_error{"Error material is invalid!"};
+
 	auto &texStringData = m_bsp->GetTranslatedTexDataStrings();
 	std::vector<msys::MaterialHandle> materials {};
 	materials.reserve(texStringData.size());
@@ -65,7 +71,8 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		ustring::to_lower(lstr);
 		m_nw.LoadMaterial(lstr); // Note: This is on purpose, m_nw may be ClientState
 		auto *mat = m_game.GetNetworkState()->LoadMaterial(lstr);
-		materials.push_back(mat ? mat->GetHandle() : msys::MaterialHandle{});
+		
+		materials.push_back(mat ? mat->GetHandle() : matErr->GetHandle());
 	}
 
 	auto lightmapData = LoadLightmapData(m_nw,*m_bsp);
