@@ -41,6 +41,51 @@ static uint32_t add_material(NetworkState &nw,Model &mdl,const std::string &mat,
 	if(ustring::compare<std::string_view>(front,"materials",false) == false)
 		outputPath = "models/" +outputPath;
 
+
+	{
+		auto f = filemanager::open_file(inputPath,filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		if(f)
+		{
+			auto texOutputPath = util::Path::CreatePath("addons/imported/materials/") +std::string{outputPath.GetPath()};
+			filemanager::create_path(texOutputPath.GetString());
+			fsys::File fp {f};
+			auto resource = source2::load_resource(fp);
+			if(resource)
+			{
+				auto *s2Mat = dynamic_cast<source2::resource::Material*>(resource->FindBlock(source2::BlockType::DATA));
+				if(s2Mat)
+				{
+					auto &texParams = s2Mat->GetTextureParams();
+					for(auto &pair : texParams)
+					{
+						auto fname = pair.second;
+						static const std::array<std::string,2> extensions {"vtex","vtex_c"};
+						ufile::remove_extension_from_filename(fname,extensions);
+						auto copySuccess = false;
+						for(auto &ext : extensions)
+						{
+							auto fnameExt = fname +'.' +ext;
+							auto texOutputFileName = texOutputPath +util::Path::CreateFile(ufile::get_file_from_filename(fnameExt));
+							if(filemanager::copy_file(fnameExt,texOutputFileName.GetString()))
+							{
+								copySuccess = true;
+								break;
+							}
+						}
+						if(!copySuccess)
+							Con::cwar<<"WARNING: Unable to copy texture from '"<<pair.second<<"' to '"<<fname<<"', this may cause import issues!"<<Con::endl;
+					}
+				}
+				else
+					Con::cwar<<"WARNING: '"<<inputPath<<"' does not have material block!"<<Con::endl;
+			}
+			else
+				Con::cwar<<"WARNING: '"<<inputPath<<"' is not a recognized resource type!"<<Con::endl;
+		}
+		else
+			Con::cwar<<"WARNING: Unable to open material file '"<<inputPath<<"', this may cause import issues!"<<Con::endl;
+	}
+
 	// Materials in Source 2 can be in arbitrary locations (relative to the game), not necessarily
 	// in the materials directory. For this reason we'll have to port the material immediately and then
 	// change its path for Pragma.
