@@ -3518,11 +3518,11 @@ std::shared_ptr<Model> import::load_mdl(
 	}
 
 	auto isStaticProp = (mdlInfo.header.flags &STUDIOHDR_FLAGS_STATIC_PROP) != 0;
-	if(isStaticProp == false && skeleton.GetBoneCount() <= 1)
+	/*if(isStaticProp == false && skeleton.GetBoneCount() <= 1)
 	{
 		// We'll just assume this is a static prop...
 		isStaticProp = true;
-	}
+	}*/
 	umath::set_flag(mdl.GetMetaInfo().flags,Model::Flags::Inanimate,isStaticProp);
 
 	if(isStaticProp)
