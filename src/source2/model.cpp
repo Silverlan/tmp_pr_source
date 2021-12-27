@@ -26,7 +26,7 @@
 #include <unordered_set>
 #include <panima/skeleton.hpp>
 #include <panima/bone.hpp>
-#pragma optimize("",off)
+
 static uint32_t add_material(NetworkState &nw,Model &mdl,const std::string &mat,std::optional<uint32_t> skinId={})
 {
 	::util::Path path{mat};
@@ -1425,4 +1425,3 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	import::util::port_model_texture_assets(nw,mdl);
 	return ptrMdl;
 }
-#pragma optimize("",on)

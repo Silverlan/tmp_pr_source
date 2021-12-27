@@ -23,7 +23,7 @@
 
 extern DLLNETWORK Engine *engine;
 const decltype(pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR) pragma::asset::vbsp::BSPConverter::WLD_DEFAULT_AMBIENT_COLOR = Color{255,255,255,80};
-#pragma optimize("",off)
+
 Vector3 pragma::asset::vbsp::BSPConverter::BSPVertexToPragma(const Vector3 &inPos)
 {
 	static Quat s_rotationConversion = uquat::create(EulerAngles{0.f,-90.f,0.f});
@@ -936,4 +936,3 @@ std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::G
 	}
 	return collisionMeshes;
 }
-#pragma optimize("",on)

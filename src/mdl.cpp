@@ -31,7 +31,7 @@
 #include <panima/bone.hpp>
 
 extern DLLNETWORK Engine *engine;
-#pragma optimize("",off)
+
 static const std::unordered_map<std::string,Activity> translateActivities = {
 	{"ACT_RESET",Activity::Invalid},
 	{"ACT_IDLE",Activity::Idle},
@@ -1602,6 +1602,18 @@ std::shared_ptr<Model> import::load_mdl(
 	}
 	else
 	{
+		// Note: We're not actually using the model's existing reference animation and instead generate our own,
+		// since that is more reliable in most cases.
+		// This can, however, cause issues as well, for example:
+		// Model: https://steamcommunity.com/sharedfiles/filedetails/?id=2360039741
+		// The model has a deformed reference pose, which doesn't match the actual bone poses.
+		// To correct it, the model also has an auto-playing layered animation,which effectively cancels out
+		// the deformation caused by the reference pose.
+		// However, since we're generating our own reference pose (which doesn't have the deformation),
+		// the layered animation will cause a deformation of its own.
+		// A temporary work-around is to stop the layered animation on all actors using the model,
+		// but a proper fix should be added in the future.
+
 		reference = mdl.GetAnimation(refId);
 		//frameReference = reference->GetFrame(0);
 		//bGlobalizeReference = true;
@@ -3564,4 +3576,3 @@ std::shared_ptr<Model> import::load_mdl(
 
 	return ptrMdl;
 }
-#pragma optimize("",on)

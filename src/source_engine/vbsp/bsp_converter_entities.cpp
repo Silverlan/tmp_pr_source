@@ -11,7 +11,7 @@
 
 const auto LIGHT_SOURCE_FLAGS = /*umath::to_integral(pragma::BaseEnvLightComponent::SpawnFlag::DontCastShadows) | */
 	umath::to_integral(pragma::BaseToggleComponent::SpawnFlags::StartOn) | umath::to_integral(pragma::BaseEnvLightComponent::SpawnFlag::DontCastShadows);
-#pragma optimize("",off)
+
 static std::string invert_x_coordinate(std::string str)
 {
 	if(str.empty())
@@ -654,4 +654,3 @@ void source_engine::translate_entity_data(
 	entData.SetFlags(flags);
 	entData.GetKeyValues() = keyValues;
 }
-#pragma optimize("",on)
