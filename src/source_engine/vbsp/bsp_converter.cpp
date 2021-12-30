@@ -63,7 +63,7 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		throw std::runtime_error{"Error material is invalid!"};
 
 	auto &texStringData = m_bsp->GetTranslatedTexDataStrings();
-	std::vector<msys::MaterialHandle> materials {};
+	std::vector<std::pair<std::string,msys::MaterialHandle>> materials {};
 	materials.reserve(texStringData.size());
 	for(auto &str : texStringData)
 	{
@@ -72,7 +72,7 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 		m_nw.LoadMaterial(lstr); // Note: This is on purpose, m_nw may be ClientState
 		auto *mat = m_game.GetNetworkState()->LoadMaterial(lstr);
 		
-		materials.push_back(mat ? mat->GetHandle() : matErr->GetHandle());
+		materials.push_back({lstr,mat ? mat->GetHandle() : matErr->GetHandle()});
 	}
 
 	auto lightmapData = LoadLightmapData(m_nw,*m_bsp);

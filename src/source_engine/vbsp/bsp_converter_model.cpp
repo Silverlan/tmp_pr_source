@@ -11,7 +11,9 @@
 #include <thread>
 #include <mutex>
 
-std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityData &entData,LightmapData &lightMapInfo,const std::vector<msys::MaterialHandle> &materials)
+std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(
+	EntityData &entData,LightmapData &lightMapInfo,const std::vector<std::pair<std::string,msys::MaterialHandle>> &materials
+)
 {
 	auto &worldData = *m_outputWorldData;
 	auto &game = m_game;
@@ -51,7 +53,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 				continue;
 			auto &faceTexInfo = texInfo.at(face.texInfoIndex); // TODO: face.texInfoIndex == -1?
 			auto texId = (faceTexInfo.texdata != -1) ? texStringTable.at(texData.at(faceTexInfo.texdata).nameStringTableID) : -1;
-			auto hMat = materials.at(texId);
+			auto hMat = materials.at(texId).second;
 			auto *diffuseMap = hMat ? hMat.get()->GetDiffuseMap() : nullptr;
 			if(diffuseMap == nullptr)
 				; // TODO: Print warning
@@ -440,7 +442,8 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 		{
 			auto &matMesh = pairMat.second;
 			std::optional<uint32_t> skinTexIdx {};
-			auto matIdx = mdl->AddMaterial(0u,materials.at(pairMat.first).get(),&skinTexIdx);
+			auto &matInfo = materials.at(pairMat.first);
+			auto matIdx = mdl->AddMaterial(0u,matInfo.second.get(),matInfo.first,&skinTexIdx);
 			auto subMesh = game.CreateModelSubMesh();
 
 			auto &meshVerts = subMesh->GetVertices();
@@ -483,7 +486,8 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(EntityDa
 	{
 		auto &triInfo = bspTriangles.at(range.first);
 		std::optional<uint32_t> skinTexIdx {};
-		auto matIdx = mdl->AddMaterial(0u,materials.at(triInfo.materialIndex).get(),&skinTexIdx);
+		auto &matInfo = materials.at(triInfo.materialIndex);
+		auto matIdx = mdl->AddMaterial(0u,matInfo.second.get(),matInfo.first,&skinTexIdx);
 		auto subMesh = game.CreateModelSubMesh();
 		auto &uvSets = subMesh->GetUVSets();
 		std::vector<Vector2> *meshLightmapUvs = nullptr;

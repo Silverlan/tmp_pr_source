@@ -8,7 +8,8 @@
 #include <memory>
 
 std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::GeneratePhysics(
-	asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,const std::vector<msys::MaterialHandle> &materials
+	asset::EntityData &entData,const std::vector<std::shared_ptr<vmf::PolyMesh>> &polyMeshes,
+	const std::vector<std::pair<std::string,msys::MaterialHandle>> &materials
 )
 {
 	auto &game = m_game;
@@ -60,7 +61,7 @@ std::vector<std::shared_ptr<CollisionMesh>> pragma::asset::vbsp::BSPConverter::G
 			}
 
 			auto matId = poly->GetMaterialId();
-			Material *mat = (matId < materials.size()) ? materials.at(matId).get() : nullptr;
+			Material *mat = (matId < materials.size()) ? materials.at(matId).second.get() : nullptr;
 
 			uint8_t numAlpha = 0;
 			if(bDisplacement == true)
