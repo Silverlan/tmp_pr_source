@@ -175,6 +175,18 @@ void source_engine::translate_class(
 	{
 
 	}
+	else if(ustring::compare<std::string>(className,"env_fog_controller"))
+	{
+		auto itSpawnFlags = inKeyValues.find("spawnflags");
+		if(itSpawnFlags != inKeyValues.end())
+		{
+			auto spawnFlags = util::to_int(itSpawnFlags->second);
+			if((spawnFlags &1024) != 0)
+				outKeyValues["spawnflags"] = "1024"; // Start on
+		}
+		else
+			outKeyValues["spawnflags"] = "1024"; // Start on
+	}
 	else if(ustring::compare<std::string>(className,"light"))
 	{
 		className = "env_light_point";
@@ -564,7 +576,7 @@ void source_engine::translate_entity_data(
 		});
 	};
 	auto itSkyCamera = findByClass("sky_camera");
-	if(itSkyCamera != ents.end())
+	if(itSkyCamera != ents.end() && findByClass("env_fog_controller") == ents.end())
 	{
 		auto &entSkyCamera = **itSkyCamera;
 		auto fogEnable = entSkyCamera.GetKeyValue("fogenable");
@@ -639,6 +651,8 @@ void source_engine::translate_entity_data(
 	// Setup entity components depending on keyvalues
 	std::unordered_set<std::string> components {};
 	source_engine::find_entity_components(keyValues,components);
+	if(ustring::compare(className.c_str(),"env_fog_controller",false))
+		components.insert("toggle");
 	if(entData.GetOutputs().empty() == false)
 		components.insert("io");
 	for(auto &c : components)

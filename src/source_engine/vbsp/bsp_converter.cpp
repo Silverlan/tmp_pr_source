@@ -437,7 +437,7 @@ void pragma::asset::vbsp::BSPConverter::ConvertEntityData()
 
 	const std::array<std::string,7> classIgnoreList = {
 		//"worldspawn",
-		"env_fog_controller", // TODO
+		//"env_fog_controller",
 		"func_brush", // TODO
 		"info_node"
 	};
