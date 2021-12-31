@@ -69,6 +69,8 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 	{
 		auto lstr = str;
 		ustring::to_lower(lstr);
+		ufile::remove_extension_from_filename(lstr,pragma::asset::get_supported_extensions(pragma::asset::Type::Material,true));
+		lstr = pragma::asset::get_normalized_path(lstr,pragma::asset::Type::Material);
 		m_nw.LoadMaterial(lstr); // Note: This is on purpose, m_nw may be ClientState
 		auto *mat = m_game.GetNetworkState()->LoadMaterial(lstr);
 		

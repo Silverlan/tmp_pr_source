@@ -171,7 +171,8 @@ static bool load_mounted_games()
 uint32_t import::util::add_texture(NetworkState &nw,Model &mdl,const std::string &name,TextureGroup *optTexGroup,bool forceAddToTexGroup)
 {
 	auto fname = name;
-	ufile::remove_extension_from_filename(fname);
+	ufile::remove_extension_from_filename(fname,pragma::asset::get_supported_extensions(pragma::asset::Type::Material,true));
+	fname = pragma::asset::get_normalized_path(name,pragma::asset::Type::Material);
 	auto &meta = mdl.GetMetaInfo();
 	auto it = std::find(meta.textures.begin(),meta.textures.end(),fname);
 	auto idx = 0u;
