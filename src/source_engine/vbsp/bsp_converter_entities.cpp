@@ -175,18 +175,6 @@ void source_engine::translate_class(
 	{
 
 	}
-	else if(ustring::compare<std::string>(className,"env_fog_controller"))
-	{
-		auto itSpawnFlags = inKeyValues.find("spawnflags");
-		if(itSpawnFlags != inKeyValues.end())
-		{
-			auto spawnFlags = util::to_int(itSpawnFlags->second);
-			if((spawnFlags &1024) != 0)
-				outKeyValues["spawnflags"] = "1024"; // Start on
-		}
-		else
-			outKeyValues["spawnflags"] = "1024"; // Start on
-	}
 	else if(ustring::compare<std::string>(className,"light"))
 	{
 		className = "env_light_point";
@@ -299,6 +287,20 @@ void source_engine::translate_class(
 			outKeyValues.insert(std::make_pair(pair.first,pair.second));
 		}
 	}
+
+	if(ustring::compare<std::string>(className,"env_fog_controller"))
+	{
+		auto itSpawnFlags = inKeyValues.find("spawnflags");
+		if(itSpawnFlags != inKeyValues.end())
+		{
+			auto spawnFlags = util::to_int(itSpawnFlags->second);
+			if((spawnFlags &1024) != 0)
+				outKeyValues["spawnflags"] = "1024"; // Start on
+		}
+		else
+			outKeyValues["spawnflags"] = "1024"; // Start on
+	}
+
 	if(bUseOrigin)
 		outKeyValues.insert(std::make_pair("origin",std::to_string(origin.x) +" " +std::to_string(origin.y) +" " +std::to_string(origin.z)));
 	if(bUseAngles)
