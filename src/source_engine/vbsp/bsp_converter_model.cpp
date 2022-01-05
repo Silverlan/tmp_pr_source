@@ -754,6 +754,7 @@ void pragma::asset::vbsp::BSPConverter::OptimizeLevelGeometry(Model &mdl)
 				}
 			}
 		}};
+		util::set_thread_name(threadPool.at(i),"opt_lv_geo");
 	}
 
 	for(auto i=decltype(threadPool.size()){0u};i<threadPool.size();++i)
