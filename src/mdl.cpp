@@ -31,7 +31,7 @@
 #include <panima/bone.hpp>
 
 extern DLLNETWORK Engine *engine;
-
+#pragma optimize("",off)
 static const std::unordered_map<std::string,Activity> translateActivities = {
 	{"ACT_RESET",Activity::Invalid},
 	{"ACT_IDLE",Activity::Idle},
@@ -1889,17 +1889,32 @@ std::shared_ptr<Model> import::load_mdl(
 									auto it = newIndices.find(vertIdx);
 									if(it == newIndices.end()) // New unique vertex
 									{
-										auto &vvdVert = vvdVerts[vertIdx];
-										auto &vvdWeight = vvdVertWeights[vertIdx];
-										verts.push_back(vvdVert);
-										vertWeights.push_back(vvdWeight);
+										if(vertIdx < vvdVerts.size() && vertIdx < vvdVertWeights.size())
+										{
+											auto &vvdVert = vvdVerts[vertIdx];
+											auto &vvdWeight = vvdVertWeights[vertIdx];
+											verts.push_back(vvdVert);
+											vertWeights.push_back(vvdWeight);
+										}
+										else
+										{
+											// Invalid vertex?
+											// (Happens for https://sfmlab.com/project/32816/ , reason unknown)
+											verts.push_back({});
+											vertWeights.push_back({});
+										}
 
 										vertIdx = newIndices[vertIdx] = verts.size() -1;
 									}
 									else
 										vertIdx = it->second;
 									if(lodIdx == 0)
-										fixedLod0IndicesToPragmaModelIndices.at(fixedIdx) = vertIdx;
+									{
+										// Invalid vertex?
+										// (Happens for https://sfmlab.com/project/32816/ , reason unknown)
+										if(fixedIdx < fixedLod0IndicesToPragmaModelIndices.size())
+											fixedLod0IndicesToPragmaModelIndices.at(fixedIdx) = vertIdx;
+									}
 									triangles.push_back(vertIdx);
 								}
 							}
@@ -3576,3 +3591,4 @@ std::shared_ptr<Model> import::load_mdl(
 
 	return ptrMdl;
 }
+#pragma optimize("",on)
