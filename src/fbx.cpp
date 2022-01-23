@@ -153,7 +153,6 @@ bool import::load_fbx(NetworkState *nw,Model &mdl,VFilePtr &f,std::vector<std::s
 
 				auto *verts = mesh->GetControlPoints();
 				auto &meshVerts = subMesh->GetVertices();
-				auto &meshTriangles = subMesh->GetTriangles();
 				auto numVerts = mesh->GetControlPointsCount();
 				meshVerts.reserve(numVerts);
 				std::unordered_map<uint32_t,bool> vertsInitialized;
@@ -168,7 +167,7 @@ bool import::load_fbx(NetworkState *nw,Model &mdl,VFilePtr &f,std::vector<std::s
 				{
 					auto numVerts = mesh->GetPolygonSize(i);
 					assert(numVerts == 3);
-					meshTriangles.reserve(numVerts);
+					subMesh->ReserveIndices(numVerts);
 					for(auto j=decltype(numVerts){0};j<numVerts;++j)
 					{
 						auto idx = mesh->GetPolygonVertex(i,j);
@@ -198,7 +197,7 @@ bool import::load_fbx(NetworkState *nw,Model &mdl,VFilePtr &f,std::vector<std::s
 							v.uv[1] = 1.f -v.uv[1];
 							vertsInitialized[idx] = (bUnmapped == false) ? true : false;
 						}
-						meshTriangles.push_back(idx);
+						subMesh->AddIndex(idx);
 					}
 				}
 				auto numMats = child->GetMaterialCount();

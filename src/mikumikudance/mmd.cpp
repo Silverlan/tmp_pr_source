@@ -12,6 +12,7 @@
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_path.hpp>
+#include <sharedutils/scope_guard.h>
 #include <material_manager2.hpp>
 #include <mathutil/vertex.hpp>
 #include <fsys/filesystem.h>
@@ -25,7 +26,7 @@
 #include <panima/bone.hpp>
 
 extern DLLNETWORK Engine *engine;
-
+#pragma optimize("",off)
 static std::unordered_map<std::string,std::string> jpMorphNameToEnglish = {
 	// See https://www.deviantart.com/xoriu/art/MMD-Facial-Expressions-Chart-341504917
 	// Key is japanese name in UTF8
@@ -391,10 +392,69 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::o
 		mmdTexIdxToMdlTexIdx[texIdx] = mdlTexIdx;
 		return mdlTexIdx;
 	};
+
+#if 0
+	{
+		auto f = filemanager::open_file<VFilePtrReal>("lua/mmd_mesh_data.bin",filemanager::FileMode::Write | filemanager::FileMode::Binary);
+		if(f)
+		{
+			std::vector<Vector3> verts;
+			verts.reserve(mdlData->vertices.size());
+			for(auto &v : mdlData->vertices)
+				verts.push_back(Vector3{v.position.at(0),v.position.at(1),v.position.at(2)});
+			f->Write<uint32_t>(verts.size());
+			f->Write(verts.data(),verts.size() *sizeof(verts[0]));
+
+			f->Write<uint32_t>(mdlData->faces.size());
+			f->Write(mdlData->faces.data(),mdlData->faces.size() *sizeof(mdlData->faces[0]));
+		}
+		std::stringstream ss;
+		ss<<R"(
+local f = file.open("lua/mmd_mesh_data.bin",bit.bor(file.OPEN_MODE_READ,file.OPEN_MODE_BINARY))
+if(f == nil) then return end
+local numVerts = f:ReadUInt32()
+local verts = {}
+for i=1,numVerts do
+	local x = f:ReadFloat()
+	local y = f:ReadFloat()
+	local z = f:ReadFloat()
+	table.insert(verts,Vector(x,y,z))
+end
+local numTris = f:ReadUInt32()
+local tris = {}
+for i=1,numTris do
+	local idx = f:ReadUInt16()
+	table.insert(tris,idx)
+end
+f:Close()
+)";
+
+
+		ss<<R"(
+local dbgVerts = {}
+for _,idx in ipairs(tris) do
+	local v = verts[idx +1]
+	table.insert(dbgVerts,v)
+end
+local drawInfo = debug.DrawInfo()
+drawInfo:SetColor(Color.Red)
+drawInfo:SetOutlineColor(Color.Lime)
+drawInfo:SetDuration(60)
+debug.draw_mesh(dbgVerts,drawInfo)
+)";
+		f = filemanager::open_file<VFilePtrReal>("lua/mmd_mesh.lua",filemanager::FileMode::Write);
+		if(f)
+			f->WriteString(ss.str());
+	}
+#endif
+
 	auto faceOffset = 0ull;
 	std::unordered_map<int32_t,std::shared_ptr<ModelSubMesh>> subMeshes;
 	for(auto &mat : mdlData->materials)
 	{
+		::util::ScopeGuard sg {[&faceOffset,&mat]() {
+			faceOffset += mat.faceCount;
+		}};
 		if(mat.textureIndex == -1)
 			continue;
 		auto it = subMeshes.find(mat.textureIndex);
@@ -406,13 +466,14 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::o
 			subMesh.SetSkinTextureIndex(*texIdx);
 		auto &verts = subMesh.GetVertices();
 		auto &vertWeights = subMesh.GetVertexWeights();
-		auto &tris = subMesh.GetTriangles();
 
 		std::unordered_map<uint16_t,uint16_t> faceTranslationTable;
-		tris.reserve(mat.faceCount);
+		subMesh.ReserveIndices(mat.faceCount);
 		for(auto i=faceOffset;i<faceOffset +mat.faceCount;++i)
 		{
 			auto idx = mdlData->faces.at(i);
+			if(idx >= ModelSubMesh::MAX_INDEX16 && subMesh.GetIndexType() != pragma::model::IndexType::UInt32)
+				subMesh.SetIndexType(pragma::model::IndexType::UInt32);
 			auto it = faceTranslationTable.find(idx);
 			if(it == faceTranslationTable.end())
 			{
@@ -435,9 +496,8 @@ bool import::import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::o
 
 				it = faceTranslationTable.insert(std::make_pair(idx,verts.size() -1)).first;
 			}
-			tris.push_back(it->second);
+			subMesh.AddIndex(it->second);
 		}
-		faceOffset += mat.faceCount;
 
 		mesh->AddSubMesh(it->second);
 	}
@@ -681,3 +741,4 @@ int import::import_vmd(lua_State *l)
 	t.push(l);
 	return 1;
 }
+#pragma optimize("",on)

@@ -123,7 +123,6 @@ static std::vector<std::shared_ptr<ModelSubMesh>> generate_split_meshes(NetworkS
 	std::vector<std::shared_ptr<ModelSubMesh>> meshes {};
 	auto subMesh = std::shared_ptr<ModelSubMesh>{nw.CreateSubMesh()};
 	auto &verts = subMesh->GetVertices();
-	auto &tris = subMesh->GetTriangles();
 	auto &vertWeights = subMesh->GetVertexWeights();
 
 	verts = meshData.verts;
@@ -132,12 +131,12 @@ static std::vector<std::shared_ptr<ModelSubMesh>> generate_split_meshes(NetworkS
 	if(meshData.lightmapUvs.empty() == false)
 		subMesh->AddUVSet("lightmap") = meshData.lightmapUvs;;
 	
-	tris.reserve(indices.size());
+	subMesh->ReserveIndices(indices.size());
 	for(auto idx : indices)
 	{
 		if(idx > std::numeric_limits<uint16_t>::max())
 			idx = std::numeric_limits<uint16_t>::max();
-		tris.push_back(idx);
+		subMesh->AddIndex(idx);
 	}
 	meshes.push_back(subMesh);
 	return meshes;

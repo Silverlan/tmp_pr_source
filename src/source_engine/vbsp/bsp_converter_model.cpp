@@ -447,7 +447,6 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(
 			auto subMesh = game.CreateModelSubMesh();
 
 			auto &meshVerts = subMesh->GetVertices();
-			auto &meshTris = subMesh->GetTriangles();
 			auto &uvSets = subMesh->GetUVSets();
 			std::vector<Vector2> *meshLightmapUvs = nullptr;
 			if(useLightmaps)
@@ -456,13 +455,11 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(
 				meshLightmapUvs->reserve(matMesh.triangles.size() *3u);
 			}
 			meshVerts.reserve(matMesh.triangles.size() *3u);
-			meshTris.reserve(matMesh.triangles.size() *3u);
+			subMesh->ReserveIndices(matMesh.triangles.size() *3u);
 			for(auto *tri : matMesh.triangles)
 			{
 				auto numVerts = meshVerts.size();
-				meshTris.push_back(numVerts);
-				meshTris.push_back(numVerts +1u);
-				meshTris.push_back(numVerts +2u);
+				subMesh->AddTriangle(numVerts,numVerts +1u,numVerts +2u);
 
 				meshVerts.push_back(tri->vertices.at(0));
 				meshVerts.push_back(tri->vertices.at(1));
@@ -497,10 +494,9 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(
 			meshLightmapUvs->reserve(range.second *3u);
 		}
 		auto &meshVerts = subMesh->GetVertices();
-		auto &meshTris = subMesh->GetTriangles();
 		auto &meshAlphas = subMesh->GetAlphas();
 		meshVerts.reserve(range.second *3u);
-		meshTris.reserve(range.second *3u);
+		subMesh->ReserveIndices(range.second *3u);
 
 		auto hasAlphas = false;
 		for(auto i=range.first;i<(range.first +range.second);++i)
@@ -515,9 +511,7 @@ std::shared_ptr<Model> pragma::asset::vbsp::BSPConverter::GenerateModel(
 			}
 
 			auto numVerts = meshVerts.size();
-			meshTris.push_back(numVerts);
-			meshTris.push_back(numVerts +1u);
-			meshTris.push_back(numVerts +2u);
+			subMesh->AddTriangle(numVerts,numVerts +1u,numVerts +2u);
 
 			auto cv = [](umath::Vertex &v) -> umath::Vertex& {
 				//v.position.x = -v.position.x;

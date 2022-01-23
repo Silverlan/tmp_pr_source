@@ -682,7 +682,6 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 		auto subMesh = std::shared_ptr<ModelSubMesh>(nw->CreateSubMesh());
 		subMesh->SetSkinTextureIndex(matId);
 		auto &meshVerts = subMesh->GetVertices();
-		auto &meshIndices = subMesh->GetTriangles();
 
 		meshVerts.reserve(verts.size());
 		for(auto i=decltype(verts.size()){0};i<verts.size();++i)
@@ -697,13 +696,9 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 			meshVerts.push_back(vert);
 		}
 
-		meshIndices.reserve(triangles.size() *3);
+		subMesh->ReserveIndices(triangles.size() *3);
 		for(auto &tri : triangles)
-		{
-			meshIndices.push_back(tri.v1);
-			meshIndices.push_back(tri.v2);
-			meshIndices.push_back(tri.v3);
-		}
+			subMesh->AddTriangle(tri.v1,tri.v2,tri.v3);
 
 		auto mesh = std::shared_ptr<ModelMesh>(nw->CreateMesh());
 		mesh->AddSubMesh(subMesh);

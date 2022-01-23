@@ -1851,7 +1851,6 @@ std::shared_ptr<Model> import::load_mdl(
 							auto lodSubMesh = std::shared_ptr<ModelSubMesh>(nw->CreateSubMesh());
 							auto &verts = lodSubMesh->GetVertices();
 							auto &vertWeights = lodSubMesh->GetVertexWeights();
-							auto &triangles = lodSubMesh->GetTriangles();
 							std::unordered_map<uint16_t,uint16_t> newIndices;
 
 							auto &vtxMesh = vtxLod.meshes[meshIdx];
@@ -1873,7 +1872,7 @@ std::shared_ptr<Model> import::load_mdl(
 							auto meshVertexIndexStart = mesh.stdMesh.vertexoffset;
 							for(auto &stripGroup : vtxMesh.stripGroups)
 							{
-								triangles.reserve(triangles.size() +stripGroup.indices.size());
+								lodSubMesh->ReserveIndices(lodSubMesh->GetIndexCount() +stripGroup.indices.size());
 								for(auto i=decltype(stripGroup.indices.size()){0};i<stripGroup.indices.size();i++)
 								{
 									auto vtxIdx0 = stripGroup.indices[i];
@@ -1915,13 +1914,15 @@ std::shared_ptr<Model> import::load_mdl(
 										if(fixedIdx < fixedLod0IndicesToPragmaModelIndices.size())
 											fixedLod0IndicesToPragmaModelIndices.at(fixedIdx) = vertIdx;
 									}
-									triangles.push_back(vertIdx);
+									lodSubMesh->AddIndex(vertIdx);
 								}
 							}
 
 							// Swap triangle winding order
-							for(auto i=decltype(triangles.size()){};i<triangles.size();i+=3)
-								umath::swap(triangles[i],triangles[i +1]);
+							lodSubMesh->VisitIndices([](auto *indexData,uint32_t numIndices) {
+								for(auto i=decltype(numIndices){};i<numIndices;i+=3)
+									umath::swap(indexData[i],indexData[i +1]);
+							});
 
 							lodMesh->AddSubMesh(lodSubMesh);
 							lodSubMesh->Update();
@@ -3150,19 +3151,20 @@ std::shared_ptr<Model> import::load_mdl(
 										{
 											for(auto &subMesh : mesh->GetSubMeshes())
 											{
-												auto &triangles = subMesh->GetTriangles();
 												auto &verts = subMesh->GetVertices();
-												for(auto i=decltype(triangles.size()){0};i<triangles.size();i+=3)
-												{
-													auto &v0 = verts.at(triangles.at(i));
-													auto &v1 = verts.at(triangles.at(i +1));
-													auto &v2 = verts.at(triangles.at(i +2));
-													Vector3 r;
-													umath::geometry::closest_point_on_triangle_to_point(v0.position,v1.position,v2.position,v,&r);
-													auto d = uvec::distance(v,r);
-													if(d < dClosest)
-														dClosest = d;
-												}
+												subMesh->VisitIndices([&](auto *indexData,uint32_t numIndices) {
+													for(auto i=decltype(numIndices){0};i<numIndices;i+=3)
+													{
+														auto &v0 = verts.at(indexData[i]);
+														auto &v1 = verts.at(indexData[i +1]);
+														auto &v2 = verts.at(indexData[i +2]);
+														Vector3 r;
+														umath::geometry::closest_point_on_triangle_to_point(v0.position,v1.position,v2.position,v,&r);
+														auto d = uvec::distance(v,r);
+														if(d < dClosest)
+															dClosest = d;
+													}
+												});
 											}
 										}
 									}
