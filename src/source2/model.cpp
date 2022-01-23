@@ -134,82 +134,11 @@ static std::vector<std::shared_ptr<ModelSubMesh>> generate_split_meshes(NetworkS
 	subMesh->ReserveIndices(indices.size());
 	for(auto idx : indices)
 	{
-		if(idx > std::numeric_limits<uint16_t>::max())
-			idx = std::numeric_limits<uint16_t>::max();
+		if(idx > ModelSubMesh::MAX_INDEX16 && subMesh->GetIndexType() == pragma::model::IndexType::UInt16)
+			subMesh->SetIndexType(pragma::model::IndexType::UInt32);
 		subMesh->AddIndex(idx);
 	}
 	meshes.push_back(subMesh);
-	return meshes;
-#if 0
-	constexpr auto MAX_VERTEX_COUNT_PER_MESH = std::numeric_limits<uint16_t>::max();
-	// Pragma doesn't support a vertex count > MAX_VERTEX_COUNT_PER_MESH,
-	// so we'll have to split the mesh
-	struct SplitMesh
-	{
-		std::vector<Vertex> verts {};
-		std::vector<VertexWeight> vertWeights {};
-		std::vector<Vector2> lightmapUvs {};
-	};
-	std::vector<SplitMesh> splitMeshes {};
-
-	auto hasVertexWeights = (meshData.vertWeights.empty() == false);
-	auto hasLightmapUvs = (meshData.lightmapUvs.empty() == false);
-
-	for(auto i=decltype(indices.size()){0u};i<indices.size();i+=3)
-	{
-		auto idx0 = indices.at(i);
-		auto idx1 = indices.at(i +1);
-		auto idx2 = indices.at(i +2);
-
-	}
-
-	auto numVerts = meshData.verts.size();
-	auto &prVerts = meshData.verts;
-	auto &vertWeights = meshData.vertWeights;
-	auto &lightmapUvs = meshData.lightmapUvs;
-	auto numSplitMeshes = numVerts /std::numeric_limits<uint16_t>::max() +1;
-	splitMeshes.reserve(numSplitMeshes);
-
-	for(auto i=decltype(numVerts){0u};i<numVerts;++i)
-	{
-		auto meshIdx = i /MAX_VERTEX_COUNT_PER_MESH;
-		if(meshIdx >= splitMeshes.size())
-		{
-			splitMeshes.push_back({});
-			auto &splitMesh = splitMeshes.back();
-			splitMesh.verts.reserve(MAX_VERTEX_COUNT_PER_MESH);
-			if(hasVertexWeights)
-				splitMesh.vertWeights.reserve(MAX_VERTEX_COUNT_PER_MESH);
-			if(hasLightmapUvs)
-				splitMesh.lightmapUvs.reserve(MAX_VERTEX_COUNT_PER_MESH);
-		}
-		auto &splitMesh = splitMeshes.back();
-		splitMesh.verts.push_back(prVerts.at(i));
-		if(hasVertexWeights)
-			splitMesh.vertWeights.push_back(vertWeights.at(i));
-
-		if(hasLightmapUvs)
-			splitMesh.lightmapUvs.push_back(lightmapUvs.at(i));
-	}
-
-	std::vector<std::shared_ptr<ModelSubMesh>> meshes {};
-	meshes.reserve(splitMeshes.size());
-	for(auto &splitMesh : splitMeshes)
-	{
-		auto mesh = std::shared_ptr<ModelSubMesh>{nw.CreateSubMesh()};
-		meshes.push_back(mesh);
-
-		mesh->GetVertices() = splitMesh.verts;
-		if(hasVertexWeights)
-			mesh->GetVertexWeights() = splitMesh.vertWeights;
-
-		if(hasLightmapUvs)
-		{
-			auto &uvSet = mesh->AddUVSet("lightmap");
-			uvSet = splitMesh.lightmapUvs;
-		}
-	}
-#endif
 	return meshes;
 }
 
@@ -316,9 +245,6 @@ static void initialize_scene_objects(
 					auto &ibuf = ibufs.at(*bufferIndex);
 					auto indexElementSize = ibuf.size;
 
-					// Note: Pragma only supports indices in a range that fit into a uint16, but Souce 2
-					// also supports uint32, so we have to use a container with a larger type to store
-					// the indices before assigning them to the mesh
 					std::vector<uint64_t> tris {};
 					tris.reserve(indexCount);
 					if(indexElementSize == 2)
