@@ -297,15 +297,17 @@ static std::unordered_map<std::string,std::string> jpBoneNameToEnglish = {
 	{"\x68\x61\x69\x72\x20\x62\x61\x63\x6b\x20\x54",""}, // hairbackT
 #endif
 };
-static std::string get_bone_name(const std::string &jpName,const std::optional<std::string> &name={})
+static bool get_bone_name(std::string &outName,const std::string &jpName)
 {
-	auto boneName = jpName;
 	auto it = jpBoneNameToEnglish.find(jpName.data());
-	if(it != jpBoneNameToEnglish.end())
-		boneName = it->second;
-	if(boneName.empty() && name.has_value())
-		boneName = *name;
-	return boneName;
+	if(it == jpBoneNameToEnglish.end())
+		return false;
+	outName = it->second;
+	return true;
+}
+static std::string get_generic_bone_name(uint32_t boneId)
+{
+	return "bone" +std::to_string(boneId);
 }
 bool import::import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::optional<std::string> &path)
 {
@@ -505,35 +507,13 @@ debug.draw_mesh(dbgVerts,drawInfo)
 	auto &skeleton = mdl.GetSkeleton();
 	auto &bones = skeleton.GetBones();
 	bones.clear();
-	for(auto &bone : mdlData->bones)
+
+	for(uint32_t boneIdx = 0; auto &bone : mdlData->bones)
 	{
-		auto boneName = get_bone_name(bone.nameJp,bone.name);
-		auto &jpName = bone.nameJp;
-		auto it = jpBoneNameToEnglish.find(jpName.data());
-		if(it != jpBoneNameToEnglish.end())
-		{
-			std::string hexName;
-			auto l = jpName.length();
-			for(auto i=decltype(l){0u};i<l;i+=2)
-			{
-				auto v = umath::swap_endian(*reinterpret_cast<int16_t*>(jpName.data() +i));
-
-				std::stringstream stream;
-				stream<<std::hex<<v;
-				auto hex = stream.str();
-				if(i +1 == l)
-				{
-					hex.pop_back();
-					hex.pop_back();
-				}
-
-				if(hexName.empty() == false)
-					hexName += ' ';
-				hexName += hex;
-			}
-			std::cout<<"Unknown japanese bone name: "<<hexName<<" (UTF8)"<<std::endl;
-		}
-
+		::util::ScopeGuard sg {[&boneIdx]() {++boneIdx;}};
+		std::string boneName;
+		if(!get_bone_name(boneName,bone.nameJp))
+			boneName = get_generic_bone_name(boneIdx);
 		auto *mdlBone = new panima::Bone();
 		mdlBone->name = boneName;
 		auto boneId = skeleton.AddBone(mdlBone);
@@ -542,10 +522,7 @@ debug.draw_mesh(dbgVerts,drawInfo)
 	}
 	auto &rootBones = skeleton.GetRootBones();
 	rootBones.clear();
-	auto &reference = mdl.GetReference();
-	reference.SetBoneCount(mdlData->bones.size());
-	auto boneId = 0u;
-	for(auto &bone : mdlData->bones)
+	for(uint32_t boneId = 0; auto &bone : mdlData->bones)
 	{
 		auto parentId = bone.parentBoneIdx;
 		if(parentId != -1)
@@ -557,10 +534,25 @@ debug.draw_mesh(dbgVerts,drawInfo)
 		}
 		else
 			rootBones.insert(std::make_pair(boneId,bones.at(boneId)));
-		reference.SetBonePosition(boneId,Vector3(bone.position.at(0),bone.position.at(1),bone.position.at(2)));
-		reference.SetBoneOrientation(boneId,uquat::identity());
 		++boneId;
 	}
+	
+	auto &reference = mdl.GetReference();
+	reference.SetBoneCount(mdlData->bones.size());
+	std::function<void(panima::Bone&,const umath::Transform&)> fCalcPoses = nullptr;
+	fCalcPoses = [&fCalcPoses,&mdlData,&reference](panima::Bone &bone,const umath::Transform &parentPose) {
+		auto &pmxBone = mdlData->bones[bone.ID];
+		auto rotPose = umath::Transform{Mat4{pmxBone.rotation}};
+		auto absPose = parentPose *rotPose;
+		absPose.SetOrigin(pmxBone.position);
+		reference.SetBonePose(bone.ID,absPose);
+
+		for(auto &pair : bone.children)
+			fCalcPoses(*pair.second,absPose);
+	};
+	for(auto &pair : rootBones)
+		fCalcPoses(*pair.second,umath::Transform{});
+
 	auto frame = Frame::Create(reference);
 	auto anim = pragma::animation::Animation::Create();
 	anim->AddFrame(frame);
@@ -580,6 +572,7 @@ debug.draw_mesh(dbgVerts,drawInfo)
 			std::cout<<"Found leg!"<<std::endl;
 	}*/
 
+	// mdl.Scale(Vector3{3.2f,3.2f,3.2f});
 	mdl.GenerateBindPoseMatrices();
 	mdl.Update(ModelUpdateFlags::All);
 	return true;
@@ -718,7 +711,8 @@ int import::import_vmd(lua_State *l)
 	for(auto &kf : animData->keyframes)
 	{
 		auto nameJp = sj2utf8(convTable,std::string{kf.boneName.data(),strlen(kf.boneName)});
-		auto boneName = get_bone_name(nameJp);
+		std::string boneName;
+		get_bone_name(boneName,nameJp);
 
 		auto t = luabind::newtable(l);
 		t["boneName"] = boneName;
