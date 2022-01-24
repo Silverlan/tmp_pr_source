@@ -24,6 +24,7 @@
 #include <sharedutils/util.h>
 #include <panima/skeleton.hpp>
 #include <panima/bone.hpp>
+#include <pragma/model/animation/vertex_animation.hpp>
 
 extern DLLNETWORK Engine *engine;
 #pragma optimize("",off)
@@ -450,6 +451,16 @@ debug.draw_mesh(dbgVerts,drawInfo)
 	}
 #endif
 
+	using SubMeshIndex = uint32_t;
+	struct MeshVertexIndex
+	{
+		SubMeshIndex meshIndex = std::numeric_limits<SubMeshIndex>::max();
+		uint32_t vertexIndex = std::numeric_limits<uint32_t>::max();
+		bool valid() const {return meshIndex != std::numeric_limits<SubMeshIndex>::max();}
+	};
+	std::vector<std::vector<MeshVertexIndex>> mmdVertexToMeshVertex;
+	mmdVertexToMeshVertex.resize(mdlData->vertices.size(),std::vector<MeshVertexIndex>{});
+
 	auto faceOffset = 0ull;
 	std::unordered_map<int32_t,std::shared_ptr<ModelSubMesh>> subMeshes;
 	for(auto &mat : mdlData->materials)
@@ -484,6 +495,7 @@ debug.draw_mesh(dbgVerts,drawInfo)
 					verts.reserve(verts.size() +500);
 					vertWeights.reserve(verts.capacity());
 				}
+				mmdVertexToMeshVertex[idx].push_back(MeshVertexIndex{mesh->GetSubMeshCount(),static_cast<uint32_t>(verts.size())});
 				verts.push_back({});
 				vertWeights.push_back({});
 				auto &vMesh = verts.back();
@@ -565,12 +577,70 @@ debug.draw_mesh(dbgVerts,drawInfo)
 	anim->SetBoneList(boneList);
 	anim->Localize(skeleton);
 
-	/*const char kLegName[4 + 1] = {0x89, 0x45, 0x91, 0xAB, 0x00}; // +1 for \0
-	for(auto &bone : mdlData->bones)
+	// Morph targets
+	for(uint32_t idx = 0; auto &morph : mdlData->morphs)
 	{
-		if(memcmp(kLegName,bone.nameJp.data(),4) == 0)
-			std::cout<<"Found leg!"<<std::endl;
-	}*/
+		if(morph->type != mmd::pmx::MorphType::Vertex)
+			continue;
+		::util::ScopeGuard sg {[&idx]() {++idx;}};
+		// TODO: Translate japanese name
+		auto morphTargetName = "morph_" +std::to_string(idx);
+		auto vertAnim = mdl.AddVertexAnimation(morphTargetName);
+		std::unordered_map<SubMeshIndex,std::vector<uint32_t>> meshMorphIndices;
+		for(auto i=decltype(morph->count){0u};i<morph->count;++i)
+		{
+			auto &vmorph = static_cast<mmd::pmx::VertexMorph*>(morph->morphs)[i];
+			if(vmorph.index < 0 || vmorph.index >= mmdVertexToMeshVertex.size())
+				continue;
+			for(auto &indexInfo : mmdVertexToMeshVertex[vmorph.index])
+			{
+				auto it = meshMorphIndices.find(indexInfo.meshIndex);
+				if(it == meshMorphIndices.end())
+					it = meshMorphIndices.insert(std::make_pair(indexInfo.meshIndex,std::vector<uint32_t>{})).first;
+				if(it->second.size() == it->second.capacity())
+					it->second.reserve(it->second.size() *1.5 +50);
+				it->second.push_back(i);
+			}
+		}
+
+		for(auto &pair : meshMorphIndices)
+		{
+			auto subMeshIndex = pair.first;
+			auto &subMesh = *mesh->GetSubMeshes()[subMeshIndex];
+			auto &morphIndices = pair.second;
+			auto meshFrame = vertAnim->AddMeshFrame(*mesh,subMesh);
+			meshFrame->SetVertexCount(subMesh.GetVertexCount());
+			for(auto idx : morphIndices)
+			{
+				auto &vmorph = static_cast<mmd::pmx::VertexMorph*>(morph->morphs)[idx];
+				for(auto &indexInfo : mmdVertexToMeshVertex[vmorph.index])
+				{
+					if(indexInfo.meshIndex != subMeshIndex)
+						continue;
+					meshFrame->SetVertexPosition(indexInfo.vertexIndex,vmorph.offset);
+				}
+			}
+		}
+
+		// Add flex
+		auto defaultWeight = 0.f;
+		auto &fc = mdl.AddFlexController(morphTargetName);
+		fc.min = 0.f;
+		fc.max = 1.f;
+
+		uint32_t fcId = 0;
+		mdl.GetFlexControllerId(morphTargetName,fcId);
+
+		auto &flex = mdl.AddFlex(morphTargetName);
+		flex.SetVertexAnimation(*vertAnim);
+		auto &operations = flex.GetOperations();
+		operations.push_back({});
+		auto &op = flex.GetOperations().back();
+		op.type = Flex::Operation::Type::Fetch;
+		op.d.index = fcId;
+		//
+	}
+	//
 
 	// mdl.Scale(Vector3{3.2f,3.2f,3.2f});
 	mdl.GenerateBindPoseMatrices();
