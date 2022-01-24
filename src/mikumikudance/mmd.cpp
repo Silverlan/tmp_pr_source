@@ -9,6 +9,7 @@
 #include <pragma/engine.h>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/asset/util_asset.hpp>
+#include <sharedutils/util_pragma.hpp>
 #include <sharedutils/util_string.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_path.hpp>
@@ -494,7 +495,14 @@ debug.draw_mesh(dbgVerts,drawInfo)
 			continue;
 		auto it = subMeshes.find(mat.textureIndex);
 		if(it == subMeshes.end())
+		{
 			it = subMeshes.insert(std::make_pair(mat.textureIndex,std::shared_ptr<ModelSubMesh>(nw.CreateSubMesh()))).first;
+			mesh->AddSubMesh(it->second);
+		}
+
+		auto &meshSub = mesh->GetSubMeshes();
+		auto subMeshIdx = std::find(meshSub.begin(),meshSub.end(),it->second) -meshSub.begin();
+
 		auto &subMesh = *it->second;
 		auto texIdx = importTexture(mat.textureIndex);
 		if(texIdx.has_value())
@@ -517,7 +525,7 @@ debug.draw_mesh(dbgVerts,drawInfo)
 					verts.reserve(verts.size() +500);
 					vertWeights.reserve(verts.capacity());
 				}
-				mmdVertexToMeshVertex[idx].push_back(MeshVertexIndex{mesh->GetSubMeshCount(),static_cast<uint32_t>(verts.size())});
+				mmdVertexToMeshVertex[idx].push_back(MeshVertexIndex{static_cast<uint32_t>(subMeshIdx),static_cast<uint32_t>(verts.size())});
 				verts.push_back({});
 				vertWeights.push_back({});
 				auto &vMesh = verts.back();
@@ -534,8 +542,6 @@ debug.draw_mesh(dbgVerts,drawInfo)
 			}
 			subMesh.AddIndex(it->second);
 		}
-
-		mesh->AddSubMesh(it->second);
 	}
 
 	auto &skeleton = mdl.GetSkeleton();
@@ -658,9 +664,15 @@ debug.draw_mesh(dbgVerts,drawInfo)
 	}
 	//
 
-	// mdl.Scale(Vector3{3.2f,3.2f,3.2f});
+	// See https://www.deviantart.com/hogarth-mmd/journal/1-MMD-unit-in-real-world-units-685870002
+	constexpr auto mmdUnitToMeter = 0.08;
+
+	auto scale = ::util::pragma::metres_to_units(mmdUnitToMeter);
+
 	mdl.GenerateBindPoseMatrices();
-	mdl.Update(ModelUpdateFlags::All);
+	mdl.Update(ModelUpdateFlags::AllData);
+	mdl.Rotate(uquat::create(Vector3{0.f,1.f,0.f},umath::deg_to_rad(180.f)));
+	mdl.Scale(Vector3{scale,scale,scale});
 	return true;
 }
 int import::import_pmx(lua_State *l)

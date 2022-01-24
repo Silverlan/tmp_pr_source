@@ -807,6 +807,6 @@ bool import::load_nif(NetworkState *nw,std::shared_ptr<::Model> &mdl,const std::
 		}
 	}
 	
-	mdl->Update(ModelUpdateFlags::All);
+	mdl->Update(ModelUpdateFlags::AllData);
 	return true;
 }

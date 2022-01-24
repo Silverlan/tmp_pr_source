@@ -3584,7 +3584,7 @@ std::shared_ptr<Model> import::load_mdl(
 	//auto rot = uquat::create(EulerAngles(0.f,90.f,0.f));
 	//mdl.Rotate(rot);
 
-	mdl.Update(ModelUpdateFlags::All);
+	mdl.Update(ModelUpdateFlags::AllData);
 
 	import::util::port_model_texture_assets(*nw,mdl);
 

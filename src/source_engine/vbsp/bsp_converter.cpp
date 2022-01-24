@@ -119,7 +119,7 @@ bool pragma::asset::vbsp::BSPConverter::StartConversion()
 			for(auto &v : colMesh->GetVertices())
 				v = {-v.z,v.y,v.x};
 		}
-		mdlInfo.model->Update(ModelUpdateFlags::All);
+		mdlInfo.model->Update(ModelUpdateFlags::AllData);
 
 		auto name = mdlInfo.entityData->GetClassName() +"_" +std::to_string(mdlInfo.entityData->GetMapIndex());
 		auto path = "maps/" +GetMapName() +"/" +name;

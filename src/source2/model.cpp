@@ -1346,7 +1346,7 @@ std::shared_ptr<Model> source2::convert::convert_model(
 	}
 
 	// Finalize model
-	mdl.Update(ModelUpdateFlags::All);
+	mdl.Update(ModelUpdateFlags::AllData);
 	import::util::port_model_texture_assets(nw,mdl);
 	return ptrMdl;
 }
