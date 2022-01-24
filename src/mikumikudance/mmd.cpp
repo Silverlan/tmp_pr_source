@@ -28,6 +28,19 @@
 
 extern DLLNETWORK Engine *engine;
 #pragma optimize("",off)
+static bool is_allowed_name_character(unsigned char c)
+{
+	return c >= 33 && c <= 126;
+}
+static bool is_allowed_name(const std::string &name)
+{
+	for(auto c : name)
+	{
+		if(!is_allowed_name_character(c))
+			return false;
+	}
+	return true;
+}
 static std::unordered_map<std::string,std::string> jpMorphNameToEnglish = {
 	// See https://www.deviantart.com/xoriu/art/MMD-Facial-Expressions-Chart-341504917
 	// Key is japanese name in UTF8
@@ -93,16 +106,6 @@ static std::unordered_map<std::string,std::string> jpMorphNameToEnglish = {
 	{"\xe4\xb8\x8a","UP"},
 	{"\xe4\xb8\x8b","Down"}
 };
-static std::string get_morph_name(const std::string &jpName,const std::optional<std::string> &name={})
-{
-	auto morphName = jpName;
-	auto it = jpMorphNameToEnglish.find(jpName.data());
-	if(it != jpMorphNameToEnglish.end())
-		morphName = it->second;
-	if(morphName.empty() && name.has_value())
-		morphName = *name;
-	return morphName;
-}
 
 static std::unordered_map<std::string,std::string> jpBoneNameToEnglish = {
 	// See https://learnmmd.com/http:/learnmmd.com/mmd-bone-reference-charts/ and https://github.com/syoyo/MMDLoader/blob/6b9b4bcf3c3736d1ebe4e77125ef4c1671ba4027/pmd_reader.cc
@@ -298,17 +301,36 @@ static std::unordered_map<std::string,std::string> jpBoneNameToEnglish = {
 	{"\x68\x61\x69\x72\x20\x62\x61\x63\x6b\x20\x54",""}, // hairbackT
 #endif
 };
-static bool get_bone_name(std::string &outName,const std::string &jpName)
+enum class NamedObjectType : uint8_t
 {
-	auto it = jpBoneNameToEnglish.find(jpName.data());
-	if(it == jpBoneNameToEnglish.end())
-		return false;
-	outName = it->second;
-	return true;
-}
-static std::string get_generic_bone_name(uint32_t boneId)
+	Bone = 0,
+	MorphTarget
+};
+static std::string get_name(const std::string &jpName,const std::optional<std::string> &engName,uint32_t idx,NamedObjectType type)
 {
-	return "bone" +std::to_string(boneId);
+	if(engName.has_value() && !engName->empty() && is_allowed_name(*engName))
+		return *engName; // Probably an english name?
+	auto &list = (type == NamedObjectType::Bone) ? jpBoneNameToEnglish : jpMorphNameToEnglish;
+	auto it = list.find(jpName.data());
+	if(it != list.end())
+		return it->second;
+	if(engName.has_value())
+	{
+		// Might also be japanese
+		auto it = list.find(engName->data());
+		if(it != list.end())
+			return it->second;
+	}
+	switch(type)
+	{
+	case NamedObjectType::Bone:
+		return "bone" +std::to_string(idx);
+	case NamedObjectType::MorphTarget:
+		return "morph" +std::to_string(idx);
+	}
+	// Unreachable
+	assert(false);
+	return "invalid";
 }
 bool import::import_pmx(NetworkState &nw,Model &mdl,ufile::IFile &f,const std::optional<std::string> &path)
 {
@@ -523,14 +545,9 @@ debug.draw_mesh(dbgVerts,drawInfo)
 	for(uint32_t boneIdx = 0; auto &bone : mdlData->bones)
 	{
 		::util::ScopeGuard sg {[&boneIdx]() {++boneIdx;}};
-		std::string boneName;
-		if(!get_bone_name(boneName,bone.nameJp))
-			boneName = get_generic_bone_name(boneIdx);
 		auto *mdlBone = new panima::Bone();
-		mdlBone->name = boneName;
-		auto boneId = skeleton.AddBone(mdlBone);
-		if(mdlBone->name.empty())
-			mdlBone->name = "bone" +std::to_string(boneId);
+		mdlBone->name = get_name(bone.nameJp,bone.name,boneIdx,NamedObjectType::Bone);
+		skeleton.AddBone(mdlBone);
 	}
 	auto &rootBones = skeleton.GetRootBones();
 	rootBones.clear();
@@ -583,8 +600,7 @@ debug.draw_mesh(dbgVerts,drawInfo)
 		if(morph->type != mmd::pmx::MorphType::Vertex)
 			continue;
 		::util::ScopeGuard sg {[&idx]() {++idx;}};
-		// TODO: Translate japanese name
-		auto morphTargetName = "morph_" +std::to_string(idx);
+		auto morphTargetName = get_name(morph->nameLocal,morph->nameGlobal,idx,NamedObjectType::MorphTarget);
 		auto vertAnim = mdl.AddVertexAnimation(morphTargetName);
 		std::unordered_map<SubMeshIndex,std::vector<uint32_t>> meshMorphIndices;
 		for(auto i=decltype(morph->count){0u};i<morph->count;++i)
@@ -781,11 +797,8 @@ int import::import_vmd(lua_State *l)
 	for(auto &kf : animData->keyframes)
 	{
 		auto nameJp = sj2utf8(convTable,std::string{kf.boneName.data(),strlen(kf.boneName)});
-		std::string boneName;
-		get_bone_name(boneName,nameJp);
-
 		auto t = luabind::newtable(l);
-		t["boneName"] = boneName;
+		t["boneName"] = get_name(nameJp,{},idx,NamedObjectType::Bone);
 		t["frameIndex"] = kf.frameIndex;
 		t["position"] = Vector3{kf.position[0],kf.position[1],kf.position[2]};
 		t["rotation"] = Quat{kf.rotation[0],kf.rotation[1],kf.rotation[2],kf.rotation[3]};
@@ -796,7 +809,7 @@ int import::import_vmd(lua_State *l)
 	{
 		auto nameJp = sj2utf8(convTable,std::string{morph.morphName.data(),strlen(morph.morphName)});
 		auto t = luabind::newtable(l);
-		t["morphName"] = get_morph_name(nameJp);
+		t["morphName"] = get_name(nameJp,{},idx,NamedObjectType::MorphTarget);
 		t["frameIndex"] = morph.frameIndex;
 		t["weight"] = morph.weight;
 		tMorphs[idx++] = t;
