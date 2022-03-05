@@ -196,8 +196,14 @@ void source_engine::translate_class(
 	{
 		className = "env_light_spot";
 		outKeyValues.insert(std::make_pair("spawnflags",std::to_string(LIGHT_SOURCE_FLAGS)));
-		outKeyValues.insert(std::make_pair("outercutoff",fGetKeyValue("_cone")));
-		outKeyValues.insert(std::make_pair("innercutoff",fGetKeyValue("_inner_cone")));
+
+		auto outerAngle = util::to_float(fGetKeyValue("_cone"));
+		auto innerAngle = util::to_float(fGetKeyValue("_inner_cone"));
+		auto blendFraction = (outerAngle > 0.f) ? (innerAngle /outerAngle) : 0.f;
+		blendFraction = umath::clamp(blendFraction,0.f,1.f);
+		outerAngle *= 2.f; // Angle is half-angle in source, but not in Pragma
+		outKeyValues.insert(std::make_pair("outerconeangle",std::to_string(outerAngle)));
+		outKeyValues.insert(std::make_pair("blendfraction",std::to_string(blendFraction)));
 
 		auto bHdr = false;
 		auto lightColor = fGetLightColor("_light","_lightHDR",bHdr,false);
