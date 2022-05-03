@@ -117,6 +117,6 @@ set_target_properties(pr_source PROPERTIES FOLDER modules/mount_external)
 # endif()
 
 # add_dependencies(pr_source util_archive bsa ba2lib)
-add_dependencies(pr_source util_vmf util_archive)
+add_dependencies(pr_source util_vmf util_fgd util_archive)
 
 set_property(GLOBAL PROPERTY PRAGMA_MODULE_SKIP_TARGET_PROPERTY_FOLDER 1)
