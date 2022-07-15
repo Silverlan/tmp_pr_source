@@ -28,7 +28,7 @@
 #include <pragma/model/animation/vertex_animation.hpp>
 
 extern DLLNETWORK Engine *engine;
-#pragma optimize("",off)
+
 static bool is_allowed_name_character(unsigned char c)
 {
 	return c >= 33 && c <= 126;
@@ -830,4 +830,3 @@ int import::import_vmd(lua_State *l)
 	t.push(l);
 	return 1;
 }
-#pragma optimize("",on)
