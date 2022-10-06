@@ -10,8 +10,15 @@ project(${PROJ_NAME} CXX)
 
 option(CONFIG_ENABLE_VTF_SUPPORT "Enable VTF support?" ON)
 
+
+
+
+set(DEPENDENCY_UTIL_ARCHIVE_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_archive/include CACHE PATH "Path to include directory.")
+search_lib_recursive(DEPENDENCY_UTIL_ARCHIVE_LIBRARY external_libs/util_archive/${BINARY_PRAGMA_DIR} util_archive)
+search_lib_recursive(DEPENDENCY_UTIL_FGD_LIBRARY external_libs/util_fgd/${BINARY_PRAGMA_DIR} util_fgd STATIC)
+
 link_external_library(util_archive)
-link_external_library(fbxsdk)
+#link_external_library(fbxsdk)
 link_external_library(util_smdmodel)
 link_external_library(niftools)
 link_external_library(util_dmx)
@@ -23,7 +30,7 @@ link_external_library(util_image)
 link_external_library(util_mmd)
 link_external_library(util_udm)
 link_external_library(panima)
-link_external_library(RectangleBinPack)
+#link_external_library(RectangleBinPack)
 link_external_library(liblzma)
 link_external_library(util_zip)
 link_external_library(libzip)
@@ -32,7 +39,7 @@ if(CONFIG_ENABLE_VTF_SUPPORT)
 	link_external_library(VTFLib)
 endif()
 
-add_external_library(fbxsdk)
+#add_external_library(fbxsdk)
 add_external_library(lua)
 add_external_library(lz4) # Required for source2 library
 
@@ -58,7 +65,7 @@ add_subdirectory(external_libs/util_archive)
 add_subdirectory(external_libs/util_fgd)
 
 set(PROJECT_STATIC_RUNTIME OFF CACHE BOOL OFF FORCE)
-set(Boost_INCLUDE_DIRS ${DEPENDENCY_BOOST_INCLUDE} CACHE PATH "Path to include directory." FORCE)
+#set(Boost_INCLUDE_DIRS ${DEPENDENCY_BOOST_INCLUDE} CACHE PATH "Path to include directory." FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL OFF FORCE)
 add_subdirectory(third_party/libbsa)
 set(BUILD_SHARED_LIBS ON CACHE BOOL ".." FORCE)
