@@ -16,3 +16,6 @@
 [submodule "external_libs/util_fgd"]
 	path = external_libs/util_fgd
 	url = https://github.com/Silverlan/util_fgd.git
+[submodule "external_libs/util_dmx"]
+	path = external_libs/util_dmx
+	url = https://github.com/Silverlan/util_dmx.git
