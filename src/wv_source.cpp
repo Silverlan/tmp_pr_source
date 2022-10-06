@@ -39,6 +39,7 @@
 #include <panima/skeleton.hpp>
 #include <material_manager2.hpp>
 
+#if 0
 #pragma comment(lib,"libfbxsdk-md.lib")
 #pragma comment(lib,"lua51.lib")
 #pragma comment(lib,"luasystem.lib")
@@ -50,7 +51,7 @@
 #pragma comment(lib,"ishared.lib")
 #pragma comment(lib,"materialsystem.lib")
 #pragma comment(lib,"util_archive.lib")
-
+#endif
 extern DLLNETWORK Engine *engine;
 
 #include <game_mount_info.hpp>
@@ -925,24 +926,13 @@ extern "C" {
 	void PRAGMA_EXPORT pragma_initialize_lua(Lua::Interface &lua)
 	{
 		auto &libSteamWorks = lua.RegisterLibrary("import",{
-			{"import_fbx",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) -> int32_t {
-
-				auto &f = *Lua::CheckFile(l,1);
-				auto &mdl = Lua::Check<std::shared_ptr<Model>>(l,2);
-
-				std::vector<std::string> textures {};
-				auto fHandle = f.GetHandle();
-				auto bSuccess = import::load_fbx(engine->GetNetworkState(l),*mdl,fHandle,textures);
-				Lua::PushBool(l,bSuccess);
-				return 1;
-			})},
-			{"import_pmx",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
-				return import::import_pmx(l);
-			})},
-			{"import_vmd",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
-				return import::import_vmd(l);
-			})}
-		});
+            {"import_pmx",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+                return import::import_pmx(l);
+            })},
+            {"import_vmd",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) {
+                return import::import_vmd(l);
+            })}
+        });
 		auto &libSourceEngine = lua.RegisterLibrary("source_engine",{
 			{"compile_model",static_cast<int32_t(*)(lua_State*)>([](lua_State *l) -> int32_t {
 				std::string qcPath = Lua::CheckString(l,1);

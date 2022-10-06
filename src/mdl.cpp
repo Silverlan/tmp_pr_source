@@ -19,6 +19,7 @@
 #include <pragma/model/model.h>
 #include <stack>
 #include <unordered_set>
+#include <unordered_map>
 #include <pragma/physics/collisionmesh.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>

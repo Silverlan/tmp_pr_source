@@ -14,8 +14,11 @@ option(CONFIG_ENABLE_VTF_SUPPORT "Enable VTF support?" ON)
 
 
 set(DEPENDENCY_UTIL_ARCHIVE_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_archive/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_UTIL_FGD_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_fgd/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_UTIL_DMX_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_dmx/include CACHE PATH "Path to include directory.")
 search_lib_recursive(DEPENDENCY_UTIL_ARCHIVE_LIBRARY external_libs/util_archive/${BINARY_PRAGMA_DIR} util_archive)
 search_lib_recursive(DEPENDENCY_UTIL_FGD_LIBRARY external_libs/util_fgd/${BINARY_PRAGMA_DIR} util_fgd STATIC)
+search_lib_recursive(DEPENDENCY_UTIL_DMX_LIBRARY external_libs/util_dmx/${BINARY_PRAGMA_DIR} util_dmx STATIC)
 
 link_external_library(util_archive)
 #link_external_library(fbxsdk)
@@ -63,6 +66,9 @@ set_target_properties(pr_source PROPERTIES OUTPUT_NAME "pr_mount_external")
 
 add_subdirectory(external_libs/util_archive)
 add_subdirectory(external_libs/util_fgd)
+if (NOT TARGET util_dmx)
+    add_subdirectory(external_libs/util_dmx)
+endif()
 
 set(PROJECT_STATIC_RUNTIME OFF CACHE BOOL OFF FORCE)
 #set(Boost_INCLUDE_DIRS ${DEPENDENCY_BOOST_INCLUDE} CACHE PATH "Path to include directory." FORCE)
@@ -124,6 +130,6 @@ set_target_properties(pr_source PROPERTIES FOLDER modules/mount_external)
 # endif()
 
 # add_dependencies(pr_source util_archive bsa ba2lib)
-add_dependencies(pr_source util_vmf util_fgd util_archive)
+add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx)
 
 set_property(GLOBAL PROPERTY PRAGMA_MODULE_SKIP_TARGET_PROPERTY_FOLDER 1)
