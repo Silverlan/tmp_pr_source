@@ -1,7 +1,7 @@
 #include "mdl.h"
 #include "wv_source.hpp"
 #include "nif.hpp"
-#include "fbx.h"
+//#include "fbx.h"
 #include "mikumikudance/mmd.hpp"
 #include "source_engine/source_engine.hpp"
 #include "source_engine/vbsp/bsp_converter.hpp"
@@ -38,20 +38,9 @@
 #include <panima/bone.hpp>
 #include <panima/skeleton.hpp>
 #include <material_manager2.hpp>
+#undef VERSION
 
-#if 0
-#pragma comment(lib,"libfbxsdk-md.lib")
-#pragma comment(lib,"lua51.lib")
-#pragma comment(lib,"luasystem.lib")
-#pragma comment(lib,"luabind.lib")
-#pragma comment(lib,"sharedutils.lib")
-#pragma comment(lib,"mathutil.lib")
-#pragma comment(lib,"vfilesystem.lib")
-#pragma comment(lib,"shared.lib")
-#pragma comment(lib,"ishared.lib")
-#pragma comment(lib,"materialsystem.lib")
-#pragma comment(lib,"util_archive.lib")
-#endif
+
 extern DLLNETWORK Engine *engine;
 
 #include <game_mount_info.hpp>
@@ -680,6 +669,7 @@ static std::optional<std::string> locate_studiomdl(const std::optional<std::stri
 }
 bool source_engine::compile_model(const std::string &qcPath,const std::optional<std::string> &game,std::string &outErr)
 {
+
 	auto absStudiomdlExe = locate_studiomdl(game,outErr);
 	if(absStudiomdlExe.has_value() == false)
 		return false;
@@ -721,6 +711,7 @@ bool source_engine::compile_model(const std::string &qcPath,const std::optional<
 		}
 		args.push_back("-game \"" +ufile::get_path_from_filename(files[0]) +"\"");
 	}
+#ifdef _WIN32
 	auto result = util::start_and_wait_for_command(("\"" +*absStudiomdlExe +"\" " +ustring::implode(args) +" \"" +absQcPath +"\"").c_str(),nullptr,&exitCode);
 	if(result == false)
 	{
@@ -730,8 +721,10 @@ bool source_engine::compile_model(const std::string &qcPath,const std::optional<
 			return false;
 		}
 		outErr = "Unable to open studiomdl.exe!";
-	}
+    }
 	return result;
+
+#endif
 }
 bool source_engine::open_model_in_hlmv(const std::string &mdlPath,const std::optional<std::string> &game,std::string &outErr)
 {

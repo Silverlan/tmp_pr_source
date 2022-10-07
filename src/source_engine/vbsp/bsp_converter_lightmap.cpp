@@ -78,12 +78,12 @@ bool pragma::asset::vbsp::BSPConverter::GenerateLightMapAtlas(LightmapData &ligh
 				{
 					auto pxIdx = fCalcPixelIndex(x,y,0,0);
 
-					std::array<uint16_t,4> hdrPxCol = {
-						umath::float32_to_float16_glm(rgbR),
-						umath::float32_to_float16_glm(rgbG),
-						umath::float32_to_float16_glm(rgbB),
-						umath::float32_to_float16_glm(1.f)
-					};
+                    std::array<uint16_t,4> hdrPxCol = {
+                                            static_cast<uint16_t>(umath::float32_to_float16_glm(rgbR)),
+                                            static_cast<uint16_t>(umath::float32_to_float16_glm(rgbG)),
+                                            static_cast<uint16_t>(umath::float32_to_float16_glm(rgbB)),
+                                            static_cast<uint16_t>(umath::float32_to_float16_glm(1.f))
+                                        };
 					lightMapAtlas->SetPixelColor(pxIdx,hdrPxCol);
 
 					auto borderCol = hdrPxCol;

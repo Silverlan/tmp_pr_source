@@ -9,7 +9,7 @@
 	url = https://github.com/Slaweknowy/util_archive.git
 [submodule "third_party/niflib"]
 	path = third_party/niflib
-	url = https://github.com/Silverlan/niflib.git
+	url = https://github.com/Slaweknowy/niflib.git
 [submodule "third_party/qhull"]
 	path = third_party/qhull
 	url = https://github.com/qhull/qhull.git
@@ -21,4 +21,4 @@
 	url = https://github.com/Silverlan/util_dmx.git
 [submodule "external_libs/util_mmd"]
 	path = external_libs/util_mmd
-	url = https://github.com/Silverlan/util_mmd.git
+	url = https://github.com/Slaweknowy/util_mmd.git
