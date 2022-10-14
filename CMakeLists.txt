@@ -22,11 +22,13 @@ set(DEPENDENCY_QHULL_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/third_party/qhull/src/lib
 search_lib_recursive(DEPENDENCY_UTIL_ARCHIVE_LIBRARY external_libs/util_archive/${BINARY_PRAGMA_DIR} util_archive)
 search_lib_recursive(DEPENDENCY_UTIL_FGD_LIBRARY external_libs/util_fgd/${BINARY_PRAGMA_DIR} util_fgd STATIC)
 search_lib_recursive(DEPENDENCY_UTIL_DMX_LIBRARY external_libs/util_dmx/${BINARY_PRAGMA_DIR} util_dmx STATIC)
-search_lib_recursive(DEPENDENCY_NIFLIB_LIBRARY third_party/niflib/${BINARY_PRAGMA_DIR} niflib STATIC)
+search_lib_recursive(DEPENDENCY_NIFLIB_LIBRARY third_party/niflib/${BINARY_PRAGMA_DIR} niflib_static STATIC)
 
 link_external_library(util_archive)
 #link_external_library(fbxsdk)
 link_external_library(util_smdmodel)
+
+link_external_library(niflib)
 link_external_library(niftools)
 link_external_library(util_dmx)
 link_external_library(util_source2)
@@ -139,6 +141,6 @@ set_target_properties(pr_source PROPERTIES FOLDER modules/mount_external)
 # endif()
 
 # add_dependencies(pr_source util_archive bsa ba2lib)
-add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx util_mmd niflib lzma)
+add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx util_mmd niflib_static lzma)
 
 set_property(GLOBAL PROPERTY PRAGMA_MODULE_SKIP_TARGET_PROPERTY_FOLDER 1)
