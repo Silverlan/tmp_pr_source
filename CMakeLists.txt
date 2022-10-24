@@ -10,9 +10,29 @@ project(${PROJ_NAME} CXX)
 
 option(CONFIG_ENABLE_VTF_SUPPORT "Enable VTF support?" ON)
 
+
+
+
+set(DEPENDENCY_UTIL_ARCHIVE_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_archive/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_UTIL_FGD_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_fgd/include CACHE PATH "Path to include directory.")
+if (NOT TARGET util_dmx)
+set(DEPENDENCY_UTIL_DMX_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_dmx/include CACHE PATH "Path to include directory.")
+endif()
+set(DEPENDENCY_UTIL_MMD_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/external_libs/util_mmd/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_NIFLIB_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/third_party/niflib/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_QHULL_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/third_party/qhull/src/libqhull CACHE PATH "Path to include directory.")
+search_lib_recursive(DEPENDENCY_UTIL_ARCHIVE_LIBRARY external_libs/util_archive/${BINARY_PRAGMA_DIR} util_archive)
+search_lib_recursive(DEPENDENCY_UTIL_FGD_LIBRARY external_libs/util_fgd/${BINARY_PRAGMA_DIR} util_fgd STATIC)
+if (NOT TARGET util_dmx)
+search_lib_recursive(DEPENDENCY_UTIL_DMX_LIBRARY external_libs/util_dmx/${BINARY_PRAGMA_DIR} util_dmx STATIC)
+endif()
+search_lib_recursive(DEPENDENCY_NIFLIB_LIBRARY third_party/niflib/${BINARY_PRAGMA_DIR} niflib_static STATIC)
+
 link_external_library(util_archive)
-link_external_library(fbxsdk)
+#link_external_library(fbxsdk)
 link_external_library(util_smdmodel)
+
+link_external_library(niflib)
 link_external_library(niftools)
 link_external_library(util_dmx)
 link_external_library(util_source2)
@@ -32,13 +52,15 @@ if(CONFIG_ENABLE_VTF_SUPPORT)
 	link_external_library(VTFLib)
 endif()
 
-add_external_library(fbxsdk)
+#add_external_library(fbxsdk)
 add_external_library(lua)
 add_external_library(lz4) # Required for source2 library
 
 add_include_dir(glm)
 add_include_dir(bullet)
 add_include_dir(zlib)
+add_include_dir(qhull)
+add_include_dir(niflib)
 add_include_dir(zlib_build)
 add_include_dir(vtflib_build)
 
@@ -56,9 +78,15 @@ set_target_properties(pr_source PROPERTIES OUTPUT_NAME "pr_mount_external")
 
 add_subdirectory(external_libs/util_archive)
 add_subdirectory(external_libs/util_fgd)
+if (NOT TARGET util_dmx)
+    add_subdirectory(external_libs/util_dmx)
+endif()
+if (NOT TARGET util_mmd)
+    add_subdirectory(external_libs/util_mmd)
+endif()
 
 set(PROJECT_STATIC_RUNTIME OFF CACHE BOOL OFF FORCE)
-set(Boost_INCLUDE_DIRS ${DEPENDENCY_BOOST_INCLUDE} CACHE PATH "Path to include directory." FORCE)
+#set(Boost_INCLUDE_DIRS ${DEPENDENCY_BOOST_INCLUDE} CACHE PATH "Path to include directory." FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL OFF FORCE)
 add_subdirectory(third_party/libbsa)
 set(BUILD_SHARED_LIBS ON CACHE BOOL ".." FORCE)
@@ -117,6 +145,6 @@ set_target_properties(pr_source PROPERTIES FOLDER modules/mount_external)
 # endif()
 
 # add_dependencies(pr_source util_archive bsa ba2lib)
-add_dependencies(pr_source util_vmf util_fgd util_archive)
+add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx util_mmd niflib_static lzma)
 
 set_property(GLOBAL PROPERTY PRAGMA_MODULE_SKIP_TARGET_PROPERTY_FOLDER 1)

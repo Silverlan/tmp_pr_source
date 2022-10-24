@@ -19,6 +19,7 @@
 #include <pragma/model/model.h>
 #include <stack>
 #include <unordered_set>
+#include <unordered_map>
 #include <pragma/physics/collisionmesh.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
@@ -1422,11 +1423,19 @@ std::shared_ptr<Model> import::load_mdl(
 				auto &bc = mdlAnim->SetBlendController(bcIdx);
 				const auto flags = STUDIO_AUTOPLAY | STUDIO_DELTA;
 				auto bAutoplayGesture = (seq.GetFlags() &flags) == flags;
-				std::array<uint32_t,9> blends = {
-					s,se,e,ne,n,nw,w,sw,s
-					//s,sw,w,nw,n,ne,e,se,s
-					//n,ne,e,se,s,sw,w,nw,n
-				};
+                std::array<uint32_t,9> blends = {
+                                    static_cast<uint32_t>(s),
+                                    static_cast<uint32_t>(se),
+                                    static_cast<uint32_t>(e),
+                                    static_cast<uint32_t>(ne),
+                                    static_cast<uint32_t>(n),
+                                    static_cast<uint32_t>(nw),
+                                    static_cast<uint32_t>(w),
+                                    static_cast<uint32_t>(sw),
+                                    static_cast<uint32_t>(s)
+                                    //s,sw,w,nw,n,ne,e,se,s
+                                    //n,ne,e,se,s,sw,w,nw,n
+                                };
 				auto numBlends = blends.size(); // pp.numBlends
 				for(auto i=decltype(numBlends){0};i<numBlends;++i)
 				{
