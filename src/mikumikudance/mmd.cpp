@@ -680,8 +680,7 @@ int import::import_pmx(lua_State *l)
 	auto &f = *Lua::CheckFile(l,1);
 	auto &mdl = Lua::Check<Model>(l,2);
 	auto fptr = f.GetHandle();
-	fsys::File fp {fptr};
-	auto r = import_pmx(*engine->GetNetworkState(l),mdl,fp);
+	auto r = import_pmx(*engine->GetNetworkState(l),mdl,*fptr);
 	Lua::PushBool(l,r);
 	return 1;
 }
@@ -765,8 +764,7 @@ int import::import_vmd(lua_State *l)
 	auto &f = *Lua::CheckFile(l,1);
 	//auto &mdl = Lua::Check<Model>(l,2);
 	auto fptr = f.GetHandle();
-	fsys::File fp {fptr};
-	auto animData = mmd::vmd::load(fp);
+	auto animData = mmd::vmd::load(*fptr);
 	if(animData == nullptr)
 		return 0;
 	auto t = luabind::newtable(l);
