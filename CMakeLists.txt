@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-include("../CMakeShared.txt")
+include("./CMakeShared.txt")
 
 set(PROJ_NAME pr_source)
 
@@ -144,7 +144,8 @@ set_target_properties(pr_source PROPERTIES FOLDER modules/mount_external)
 # 	set_target_properties(ba2lib PROPERTIES FOLDER third_party/libbsa)
 # endif()
 
+add_dependencies(pr_source util_archive)
 # add_dependencies(pr_source util_archive bsa ba2lib)
-add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx util_mmd niflib_static lzma)
+# add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx util_mmd niflib_static lzma)
 
 set_property(GLOBAL PROPERTY PRAGMA_MODULE_SKIP_TARGET_PROPERTY_FOLDER 1)
