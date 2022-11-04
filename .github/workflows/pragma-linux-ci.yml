@@ -1,0 +1,126 @@
+name: Build Linux
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: environment-lin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build - ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: ubuntu-22.04
+            name: "Ubuntu GCC-11"
+            artifact: "ubuntu_gcc.7z"
+            build_type: "RelWithDebInfo"
+            cc: "clang-14"
+            cxx: "clang++-14"
+            archiver: "7z a"
+            generators: "Unix Makefiles"
+            build_dir: 'build'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          
+      - name: Setup Pragma Module
+        id: pragma-cmake-defs
+        uses: Silverlan/common_actions/setup_pragma_module@main
+        with:
+          cc_version: ${{ matrix.cc }}
+          cxx_version: ${{ matrix.cxx }}
+
+      - name: Build boost (with cache)
+        uses: Silverlan/common_actions/build_cached_boost@main
+
+      - name: Print CMake Vars
+        shell: bash
+        run: |
+          echo "${{ steps.pragma-cmake-defs.outputs.cmake_defs }}"
+
+      - name: Build VTFLib
+        shell: bash
+        run: |
+          sudo apt install xorg-dev
+          cd pragma/third_party_libs/vtflib
+          cmake -G "Unix Makefiles" -DUSE_LIBTXC_DXTN=OFF
+          cmake --build ./ --verbose
+
+      - name: Build QHull
+        shell: bash
+        run: |
+          curDir=$PWD
+          cd third_party/qhull
+          cmake -G "Unix Makefiles"
+          cmake --build ./ --verbose
+
+      - name: Build NifLib
+        shell: bash
+        run: |
+          curDir=$PWD
+          cd third_party/niflib
+          cmake -G "Unix Makefiles" -DBoost_INCLUDE_DIR="$curDir/third_party_libs/boost" -DDEPENDENCY_QHULL_INCLUDE="$curDir/third_party/qhull/src/libqhull/" -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          cmake --build ./ --verbose
+
+      - name: Build HLLib
+        shell: bash
+        run: |
+          cd pragma/third_party_libs/hllib/HLLib
+          sudo make
+
+      - name: Build util_dmx
+        shell: bash
+        run: |
+          curDir=$PWD
+          cd external_libs/util_dmx/
+          cmake -G "Unix Makefiles" -DDEPENDENCY_VFILESYSTEM_INCLUDE="$curDir/pragma/external_libs/vfilesystem/include/" -DDEPENDENCY_MATHUTIL_INCLUDE="$curDir/pragma/external_libs/mathutil/include/" -DDEPENDENCY_SHAREDUTILS_INCLUDE="$curDir/pragma/external_libs/sharedutils/include/" -DDEPENDENCY_GLM_INCLUDE="$curDir/pragma/third_party_libs/glm/" -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          cmake --build ./ --verbose
+
+      - name: Build util_fgd
+        shell: bash
+        run: |
+          curDir=$PWD
+          cd external_libs/util_fgd/
+          cmake -G "Unix Makefiles" -DDEPENDENCY_VFILESYSTEM_INCLUDE="$curDir/pragma/external_libs/vfilesystem/include/" -DDEPENDENCY_MATHUTIL_INCLUDE="$curDir/pragma/external_libs/mathutil/include/" -DDEPENDENCY_SHAREDUTILS_INCLUDE="$curDir/pragma/external_libs/sharedutils/include/" -DDEPENDENCY_GLM_INCLUDE="$curDir/pragma/third_party_libs/glm/" -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          cmake --build ./ --verbose
+
+      - name: Build
+        shell: bash
+        run: |
+          echo ${{ steps.pragma-cmake-defs.outputs.cmake_defs }}
+          cmake -G "Unix Makefiles" \
+            ${{ steps.pragma-cmake-defs.outputs.cmake_defs }} \
+            -DDEPENDENCY_SHARED_INCLUDE="./pragma/core/shared/include/" \
+          	-DDEPENDENCY_BOOST_INCLUDE="$PWD/third_party_libs/boost/" \
+          	-DBoost_INCLUDE_DIR="$PWD/third_party_libs/boost" \
+          	-DDEPENDENCY_UTIL_DMX_LIBRARY="$PWD/external_libs/util_dmx/libutil_dmx.a" \
+          	-DDEPENDENCY_UTIL_FGD_LIBRARY="$PWD/external_libs/util_fgd/libutil_fgd.a" \
+            -DDEPENDENCY_HLLIB_LIBRARY="$PWD/pragma/third_party_libs/hllib/HLLib/libhl.so.2.3.0"
+          cmake --build ./ --verbose --target pr_source
+
+      - name: Create Release Files
+        shell: bash
+        run: |
+          mkdir release
+          mkdir release/modules
+          rsync --mkpath ./libpr_mount_external.so release/modules/mount_external/
+          rsync --mkpath ./third_party_libs/boost/stage/lib/libboost_filesystem.so release/modules/mount_external/
+          rsync --mkpath ./third_party_libs/boost/stage/lib/libboost_locale.so release/modules/mount_external/
+          rsync --mkpath ./external_libs/util_archive/libutil_archive.so release/modules/mount_external/
+          rsync --mkpath ./pragma/third_party_libs/hllib/HLLib/libhl.so.2.3.0 release/modules/mount_external/
+          cd release/modules/mount_external/
+          ln -s ./libhl.so.2.3.0 ./libhl.so.2
+          
+      - name: Release Binaries
+        uses: Silverlan/common_actions/release_nightly_binaries@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit: ${{ github.ref_name }}
