@@ -4,6 +4,7 @@
 #include <pragma/level/mapinfo.h>
 #include <util_dmx.hpp>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 #include <pragma/networkstate/networkstate.h>
 #include <pragma/model/model.h>
 #include <pragma/lua/libraries/lfile.h>
@@ -43,8 +44,7 @@ extern "C" {
 
 bool import::load_dmx(NetworkState *nw,const VFilePtr &f,const std::function<std::shared_ptr<Model>()> &fCreateModel)
 {
-	auto vf = f;
-	auto dmxData = dmx::FileData::Load(vf);
+	auto dmxData = dmx::FileData::Load(std::make_shared<fsys::File>(f));
 	if(dmxData == nullptr)
 		return false;
 	std::function<void(const dmx::FileData&)> fPrintData = nullptr;
@@ -119,8 +119,7 @@ static void convert_source_engine_position_to_pragma(Vector3 &pos)
 
 bool import::load_source_particle(NetworkState *nw,const VFilePtr &f)
 {
-	auto vf = f;
-	auto dmxData = dmx::FileData::Load(vf);
+	auto dmxData = dmx::FileData::Load(std::make_shared<fsys::File>(f));
 	if(dmxData == nullptr)
 		return false;
 	auto &rootAttr = dmxData->GetRootAttribute();
