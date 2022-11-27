@@ -2,6 +2,71 @@ cmake_minimum_required(VERSION 3.12)
 
 include("./CMakeShared.txt")
 
+function(search_lib_recursive_full VAR_NAME FILE_PATH)
+	if(WIN32)
+		set(FILE_PATH_WITH_EXT "${FILE_PATH}.lib")
+	else()
+		set(FILE_EXTENSION ".so")
+		set(extra_macro_args ${ARGN})
+
+		list(LENGTH extra_macro_args num_extra_args)
+		if(${num_extra_args} GREATER 0)
+			list(GET extra_macro_args 0 optional_arg)
+			if(${optional_arg} STREQUAL "STATIC")
+				set(FILE_EXTENSION ".a")
+			endif()
+		endif()
+
+		set(FILE_PATH_WITH_EXT "${FILE_PATH}${FILE_EXTENSION}")
+	endif()
+	if(EXISTS ${FILE_PATH_WITH_EXT})
+		get_filename_component(FILE_PATH_WITH_EXT "${FILE_PATH_WITH_EXT}" REALPATH)
+	endif()
+
+	if(UNIX)
+		# Find actual library file name
+		get_filename_component(FILE_PATH_DIRECTORY "${FILE_PATH_WITH_EXT}" DIRECTORY)
+		get_filename_component(FILE_PATH_NAME "${FILE_PATH_WITH_EXT}" NAME)
+		execute_process(
+			COMMAND find ./ -name "${FILE_PATH_NAME}*"
+			WORKING_DIRECTORY "${FILE_PATH_DIRECTORY}"
+			OUTPUT_VARIABLE FOUND_RESULT
+		)
+		if(NOT ${FOUND_RESULT} STREQUAL "")
+			get_filename_component(FOUND_RESULT "${FOUND_RESULT}" NAME)
+			string(STRIP ${FOUND_RESULT} FOUND_RESULT)
+                        #message("FIND: ${FILE_PATH_DIRECTORY}/${FILE_PATH_NAME}* -> ${FOUND_RESULT}")
+			set(FILE_PATH_WITH_EXT "${FILE_PATH_DIRECTORY}/${FOUND_RESULT}")
+		endif()
+		#
+	endif()
+
+	set(${VAR_NAME} ${FILE_PATH_WITH_EXT} CACHE PATH "Path to library." FORCE)
+endfunction(search_lib_recursive_full)
+
+function(search_lib_recursive VAR_NAME FILE_PATH LIB_NAME)
+	set(ARG_STATIC_LIBRARY FALSE)
+	set(ROOT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+	set(extra_macro_args ${ARGN})
+
+	list(LENGTH extra_macro_args num_extra_args)
+	if(${num_extra_args} GREATER 0)
+		list(GET extra_macro_args 0 optional_arg)
+		if(${optional_arg} STREQUAL "STATIC")
+			set(ARG_STATIC_LIBRARY "STATIC")
+		endif()
+		if(${num_extra_args} GREATER 1)
+			list(GET extra_macro_args 1 optional_arg)
+			set(ROOT_DIR ${optional_arg})
+		endif()
+	endif()
+
+	if(UNIX)
+		set(LIB_NAME lib${LIB_NAME})
+	endif()
+	search_lib_recursive_full(${VAR_NAME} ${ROOT_DIR}/${FILE_PATH}/${LIB_NAME} ${ARG_STATIC_LIBRARY})
+endfunction(search_lib_recursive)
+
 set(PROJ_NAME pr_source)
 
 project(${PROJ_NAME} CXX)
@@ -26,8 +91,12 @@ search_lib_recursive(DEPENDENCY_UTIL_FGD_LIBRARY external_libs/util_fgd/${BINARY
 if (NOT TARGET util_dmx)
 search_lib_recursive(DEPENDENCY_UTIL_DMX_LIBRARY external_libs/util_dmx/${BINARY_PRAGMA_DIR} util_dmx STATIC)
 endif()
-search_lib_recursive(DEPENDENCY_NIFLIB_LIBRARY third_party/niflib/${BINARY_PRAGMA_DIR} niflib_static STATIC)
 
+if(WIN32)
+    search_lib_recursive(DEPENDENCY_NIFLIB_LIBRARY third_party/niflib/${BINARY_PRAGMA_DIR} niflib_static STATIC)
+else()
+    search_lib_recursive(DEPENDENCY_NIFLIB_LIBRARY third_party/niflib/${BINARY_PRAGMA_DIR} niflib)
+endif()
 link_external_library(util_archive)
 #link_external_library(fbxsdk)
 link_external_library(util_smdmodel)
@@ -71,7 +140,17 @@ endif()
 add_def(SMDMDL_STATIC)
 add_def(UIMG_ENABLE_NVTT)
 
-link_generic_module_libraries()
+link_external_library(sharedutils)
+link_external_library(mathutil)
+link_external_library(vfilesystem)
+link_external_library(shared)
+link_external_library(luasystem)
+link_external_library(LuaJIT)
+link_external_library(luabind)
+link_external_library(materialsystem)
+link_external_library(datasystem)
+link_external_library(ishared)
+link_external_library(util_udm)
 register_pragma_module(${PROJ_NAME})
 
 set_target_properties(pr_source PROPERTIES OUTPUT_NAME "pr_mount_external")
@@ -145,6 +224,7 @@ set_target_properties(pr_source PROPERTIES FOLDER modules/mount_external)
 # endif()
 
 add_dependencies(pr_source util_archive)
+add_dependencies(pr_source niflib util_fgd lzma)
 # add_dependencies(pr_source util_archive bsa ba2lib)
 # add_dependencies(pr_source util_vmf util_fgd util_archive util_dmx util_mmd niflib_static lzma)
 
