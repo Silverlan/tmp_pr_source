@@ -4,6 +4,20 @@ pragma_install_lib("${CMAKE_CURRENT_BINARY_DIR}/modules/pr_source/${PR_MODULE_IN
 #pragma_install_lib("${DEPENDENCY_BOOST_FILESYSTEM_LIBRARY}" "modules/mount_external/" OPTIONAL)
 #pragma_install_lib("${DEPENDENCY_BOOST_LOCALE_LIBRARY}" "modules/mount_external/" OPTIONAL)
 pragma_install_lib("${DEPENDENCY_HLLIB_LIBRARY}" "modules/mount_external/" OPTIONAL)
+if(UNIX)
+    pragma_install_lib("${DEPENDENCY_NIFLIB_LIBRARY}" "modules/mount_external/" OPTIONAL)
+
+    set(LINK_SRC "${CMAKE_INSTALL_PREFIX}/modules/mount_external/libhl.so.2.3.0")
+    set(LINK_DST "${CMAKE_INSTALL_PREFIX}/modules/mount_external/libhl.so.2")
+    message("Creating link from \"${LINK_SRC}\" to \"${LINK_DST}\"...")
+	add_custom_command(TARGET pragma-install
+	   POST_BUILD
+	   COMMAND ${CMAKE_COMMAND}
+            -E create_symlink
+            ${LINK_SRC}
+            ${LINK_DST}
+	   COMMENT "Creating link from ${LINK_SRC} to ${LINK_DST}...")
+endif()
 pragma_install_lib("${DEPENDENCY_UTIL_ARCHIVE_LIBRARY}" "modules/mount_external/" OPTIONAL)
 pragma_install_file("${CMAKE_CURRENT_LIST_DIR}/data/shiftjis.dat" "modules/mount_external/")
 pragma_install_directory("${CMAKE_CURRENT_LIST_DIR}/data/fgd" "modules/mount_external/")

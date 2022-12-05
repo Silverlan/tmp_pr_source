@@ -1,6 +1,5 @@
 #include "mdl.h"
 #include "wv_source.hpp"
-#include "nif.hpp"
 //#include "fbx.h"
 #include "mikumikudance/mmd.hpp"
 #include "source_engine/source_engine.hpp"
@@ -1163,68 +1162,5 @@ extern "C" {
 		if(r == nullptr)
 			return false;
 		return fCallback(r,path,mdlName);
-	}
-	PRAGMA_EXPORT bool convert_nif_model(NetworkState *nw,const std::function<std::shared_ptr<Model>()> &fCreateModel,const std::function<bool(const std::shared_ptr<Model>&,const std::string&,const std::string&)> &fCallback,const std::string &pathRoot,const std::string &mdlName)
-	{
-		auto mdl = fCreateModel();
-		auto fpath = pathRoot +mdlName +".nif";
-		auto path = ufile::get_path_from_filename(fpath);
-		::import::load_nif(nw,mdl,path +"skeleton.nif"); // Attempt to load skeleton before loading actual mesh (To retrieve correct bone hierarchy)
-		if(::import::load_nif(nw,mdl,fpath) == false)
-			return false;
-
-		auto numMeshGroups = mdl->GetMeshGroupCount();
-		for(auto i=decltype(numMeshGroups){0};i<numMeshGroups;++i)
-			mdl->GetBaseMeshes().push_back(i);
-
-		auto refAnim = pragma::animation::Animation::Create();
-		auto &skeleton = mdl->GetSkeleton();
-		auto numBones = skeleton.GetBoneCount();
-		auto &boneList = refAnim->GetBoneList();
-		refAnim->ReserveBoneIds(refAnim->GetBoneCount() +numBones);
-		for(auto i=decltype(numBones){0};i<numBones;++i)
-			refAnim->AddBoneId(i);
-		auto refFrame = Frame::Create(mdl->GetReference());
-		refAnim->AddFrame(refFrame);
-		mdl->AddAnimation("reference",refAnim);
-		//refFrame->Localize(*refAnim,skeleton);
-		//mdl->GetReference().Localize(*refAnim,skeleton);
-		mdl->GetReference().Globalize(*refAnim,skeleton);
-
-		//mdl->GenerateBindPoseMatrices();
-
-		std::function<void(const std::string&,uint32_t)> fLoadAnimations = nullptr;
-		fLoadAnimations = [&fLoadAnimations,nw,&mdl](const std::string &path,uint32_t depth) {
-			std::vector<std::string> files;
-			FileManager::FindFiles((path +"*.kf").c_str(),&files,nullptr);
-			uarch::find_files(path +"*kf",&files,nullptr);
-			// TODO: Find in archive
-			for(auto &f : files)
-			{
-				try
-				{
-					::import::load_nif(nw,mdl,path +f);
-				}
-				catch(const std::exception &e)
-				{
-					std::cout<<"ex: "<<e.what()<<std::endl;
-				}
-			}
-			if(depth == 0)
-				return;
-			std::vector<std::string> dirs;
-			FileManager::FindFiles((path +"*").c_str(),nullptr,&dirs);
-			uarch::find_files(path +"*",nullptr,&dirs);
-			for(auto &dir : dirs)
-				fLoadAnimations(path +dir +"\\",depth -1);
-		};
-		fLoadAnimations(path,4);
-
-		auto &textures = mdl->GetTextures();
-		auto *texGroup = mdl->CreateTextureGroup();
-		texGroup->textures.reserve(textures.size());
-		for(auto i=decltype(textures.size()){0};i<textures.size();++i)
-			texGroup->textures.push_back(i); // TODO: Generate material files
-		return fCallback(mdl,pathRoot,mdlName);
 	}
 };

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <functional>
+#include <string>
 #include <optional>
 
 class NetworkState;
