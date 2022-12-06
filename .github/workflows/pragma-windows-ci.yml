@@ -45,3 +45,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit: ${{ github.ref_name }}
+
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.PR_MOUNT_EXTERNAL_PREBUILT_RELEASE }}
+          event-type: release-prebuilt-binaries
+          repository: "Silverlan/pr_mount_external_prebuilt"
