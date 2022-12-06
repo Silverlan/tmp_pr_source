@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p release/modules/mount_external
-          cp -a "${{ steps.build-module.outputs.install-dir }}/modules/mount_external" "release/modules/mount_external"
+          cp -a "${{ steps.build-module.outputs.install-dir }}/modules/mount_external/." "release/modules/mount_external/"
 
       - name: Release Binaries
         uses: Silverlan/common_actions/release_nightly_binaries@main
